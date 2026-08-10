@@ -65,6 +65,9 @@ const BOOST_DURATION = 2;   // 정답 1개당 부스터 지속시간(초)
 const BOOST_SPEED_MUL = 1.4;
 const SHIELD_DURATION = 5;  // 방패는 사용한 순간부터 5초가 지나면 사라진다
 const ROCKET_RANGE = 600;   // 로켓이 앞차를 맞힐 수 있는 최대 거리(트랙이 넓어 여유있게 잡음)
+const ROCKET_FLIGHT_TIME = 0.35;  // 발사~명중까지 로켓이 날아가는 시간(초)
+const ROCKET_STUN_DURATION = 1.0; // 맞은 차가 멈칫하는 시간(초)
+const ROCKET_STUN_FACTOR = 0.08;  // 맞은 차의 속도 배율(거의 정지)
 
 /* 트랙 위 상자 배치 (진행거리 비율, 좌우 오프셋) */
 const BOX_LAYOUT = [
@@ -83,6 +86,7 @@ let selectedDiffId = "2-3";
 let cars = [];
 let boxes = [];
 let bananas = [];
+let rockets = []; // 발사되어 날아가는 중인 로켓 { from:{x,y}, target, t, duration }
 let player = null;
 let raceStats = { total: 0, correct: 0, wrongList: [] };
 let mathPopupActive = false;
@@ -187,7 +191,7 @@ function createCar(char, isPlayer, startIndex) {
     item: null,
     shielded: false, shieldTimer: 0,
     boosted: false, boostTimer: 0,
-    hitTimer: 0, hitSlowFactor: 1,
+    hitTimer: 0, hitSlowFactor: 1, hitSource: null, impactFlashTimer: 0,
     collideTimer: 0,
     mathSlowTimer: 0,
     aiPhase: makeAiPhase(startIndex),
@@ -212,6 +216,7 @@ function startRace() {
     active: true, respawnTimer: 0,
   }));
   bananas = [];
+  rockets = [];
 
   raceStats = { total: 0, correct: 0, wrongList: [] };
   mathPopupActive = false;
@@ -274,6 +279,7 @@ function update(dt) {
   cars.forEach(car => updateCar(car, dt));
   handleCarCollisions();
   updateBoxRespawns(dt);
+  updateRockets(dt);
 
   // 플레이어가 결승선을 통과하면 결과 화면으로 전환
   if (player.finished && !raceEnding) {
@@ -310,6 +316,7 @@ function updateCar(car, dt) {
 
   // --- 타이머 감소 ---
   if (car.hitTimer > 0) car.hitTimer -= dt;
+  if (car.impactFlashTimer > 0) car.impactFlashTimer -= dt;
   if (car.collideTimer > 0) car.collideTimer -= dt;
   if (car.mathSlowTimer > 0) car.mathSlowTimer -= dt;
   if (car.boostTimer > 0) { car.boostTimer -= dt; if (car.boostTimer <= 0) car.boosted = false; }
@@ -400,6 +407,18 @@ function updateBoxRespawns(dt) {
   // 밟힌 바나나는 active=false로 남기고 매 레이스 시작 시 초기화(startRace)되므로 별도 정리 불필요
 }
 
+// 발사된 로켓을 목표 차량 쪽으로 날아가게 하고, 도착하면 명중 효과를 적용한다
+function updateRockets(dt) {
+  rockets = rockets.filter(r => {
+    r.t += dt;
+    if (r.t >= r.duration) {
+      if (!r.target.finished) hitCar(r.target, "rocket");
+      return false;
+    }
+    return true;
+  });
+}
+
 function handleCarCollisions() {
   for (let i = 0; i < cars.length; i++) {
     for (let j = i + 1; j < cars.length; j++) {
@@ -463,7 +482,7 @@ function useItem(car) {
     if (target) {
       // 맞힐 차가 있을 때만 아이템을 소비한다 (앞에 아무도 없으면 헛되이 사라지지 않게)
       car.item = null;
-      hitCar(target, "rocket");
+      rockets.push({ from: { x: car.worldX, y: car.worldY }, target, t: 0, duration: ROCKET_FLIGHT_TIME });
       if (car.isPlayer) { updateItemUI(); playSound("item"); }
     } else if (car.isPlayer) {
       playSound("wrong"); // 맞힐 대상이 없다는 걸 알려주는 짧은 신호음(아이템은 그대로 유지)
@@ -474,8 +493,15 @@ function useItem(car) {
 function hitCar(car, source) {
   if (car.boosted) return;
   if (car.shielded) { car.shielded = false; return; }
-  car.hitTimer = source === "banana" ? 1.0 : 0.9;
-  car.hitSlowFactor = source === "banana" ? 0.3 : 0.45;
+  car.hitSource = source;
+  car.impactFlashTimer = 0.25;
+  if (source === "rocket") {
+    car.hitTimer = ROCKET_STUN_DURATION;
+    car.hitSlowFactor = ROCKET_STUN_FACTOR; // 거의 멈춰버릴 정도로 확실하게 느려짐
+  } else {
+    car.hitTimer = 1.0;
+    car.hitSlowFactor = 0.3; // 바나나는 미끄러지는 정도
+  }
 }
 
 function useItemInput() {
@@ -547,7 +573,7 @@ function resolveQuestion(answer) {
   }
 
   document.querySelectorAll(".answerBtn").forEach(b => b.disabled = true);
-  setTimeout(() => { hideMathPopup(); showRaceFeedback(isCorrect); }, 1300);
+  setTimeout(() => { hideMathPopup(); showRaceFeedback(isCorrect); }, 800);
 }
 
 function hideMathPopup(instant) {
@@ -644,6 +670,8 @@ function render() {
 
   const ranked = [...cars].sort((a, b) => a.distance - b.distance); // 뒤에 있는 차부터 그려서 앞차가 위로
   ranked.forEach(car => drawCar(car));
+
+  drawRockets();
 
   ctx.restore();
 
@@ -779,6 +807,24 @@ function drawBananas() {
   });
 }
 
+// 발사되어 목표를 향해 날아가는 중인 로켓을 그린다
+function drawRockets() {
+  rockets.forEach(r => {
+    const t = Math.min(1, r.t / r.duration);
+    const x = r.from.x + (r.target.worldX - r.from.x) * t;
+    const y = r.from.y + (r.target.worldY - r.from.y) * t;
+    const heading = Math.atan2(r.target.worldY - r.from.y, r.target.worldX - r.from.x);
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(heading);
+    ctx.font = "18px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("🚀", 0, 0);
+    ctx.restore();
+  });
+}
+
 function drawCar(car) {
   const w = 22, h = 14;
 
@@ -795,13 +841,32 @@ function drawCar(car) {
     ctx.arc(0, 0, glowR, 0, Math.PI * 2);
     ctx.fill();
   }
-  // 감속 효과 (칙칙한 회색 연기 - 오답 페널티, 부스터와 확실히 구분되는 색/움직임)
-  if (car.mathSlowTimer > 0) {
+  // 감속 효과 (칙칙한 회색 연기 - 오답 페널티나 바나나에 미끄러진 경우, 부스터와 확실히 구분)
+  if (car.mathSlowTimer > 0 || (car.hitTimer > 0 && car.hitSource === "banana")) {
     const wobble = Math.sin(performance.now() / 90) * 3;
     ctx.fillStyle = "rgba(120,120,120,0.5)";
     ctx.beginPath();
     ctx.arc(-w / 2 - 4 + wobble, 0, 8, 0, Math.PI * 2);
     ctx.arc(-w / 2 - 12 - wobble, -4, 6, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // 로켓 피격 효과 (머리 위에서 빙글빙글 도는 별 - 잠깐 멈칫하는 느낌)
+  if (car.hitTimer > 0 && car.hitSource === "rocket") {
+    const spin = performance.now() / 140;
+    ctx.fillStyle = "#ffd166";
+    ctx.font = "12px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    for (let k = 0; k < 3; k++) {
+      const ang = spin + k * (Math.PI * 2 / 3);
+      ctx.fillText("★", Math.cos(ang) * 12, -16 + Math.sin(ang) * 4);
+    }
+  }
+  // 피격 직후 짧은 하얀 충격 플래시
+  if (car.impactFlashTimer > 0) {
+    ctx.fillStyle = `rgba(255,255,255,${(car.impactFlashTimer / 0.25) * 0.8})`;
+    ctx.beginPath();
+    ctx.arc(0, 0, 20, 0, Math.PI * 2);
     ctx.fill();
   }
   // 방패 효과
