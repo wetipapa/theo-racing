@@ -63,6 +63,8 @@ const TOTAL_LAPS = 3;
 const QUESTION_TIME = 5;
 const BOOST_DURATION = 2;   // 정답 1개당 부스터 지속시간(초)
 const BOOST_SPEED_MUL = 1.4;
+const SHIELD_DURATION = 5;  // 방패는 사용한 순간부터 5초가 지나면 사라진다
+const ROCKET_RANGE = 600;   // 로켓이 앞차를 맞힐 수 있는 최대 거리(트랙이 넓어 여유있게 잡음)
 
 /* 트랙 위 상자 배치 (진행거리 비율, 좌우 오프셋) */
 const BOX_LAYOUT = [
@@ -183,7 +185,7 @@ function createCar(char, isPlayer, startIndex) {
     finished: false,
     finishOrder: -1,
     item: null,
-    shielded: false,
+    shielded: false, shieldTimer: 0,
     boosted: false, boostTimer: 0,
     hitTimer: 0, hitSlowFactor: 1,
     collideTimer: 0,
@@ -219,6 +221,7 @@ function startRace() {
 
   updateItemUI();
   document.getElementById("boostBanner").classList.add("hidden");
+  document.getElementById("slowBanner").classList.add("hidden");
   document.getElementById("finishBanner").classList.add("hidden");
   hideMathPopup(true);
 
@@ -310,6 +313,7 @@ function updateCar(car, dt) {
   if (car.collideTimer > 0) car.collideTimer -= dt;
   if (car.mathSlowTimer > 0) car.mathSlowTimer -= dt;
   if (car.boostTimer > 0) { car.boostTimer -= dt; if (car.boostTimer <= 0) car.boosted = false; }
+  if (car.shielded) { car.shieldTimer -= dt; if (car.shieldTimer <= 0) car.shielded = false; }
 
   // --- AI 속도 변주 ---
   if (!car.isPlayer) {
@@ -404,12 +408,22 @@ function handleCarCollisions() {
       if (a.boosted || b.boosted) continue;
       if (circDist(a.s, b.s) < 18 && Math.abs(a.offset - b.offset) < 24) {
         const dir = a.offset <= b.offset ? -1 : 1;
-        a.offset += dir * 3;
-        b.offset -= dir * 3;
-        a.offset = Math.max(-OFFSET_CLAMP, Math.min(OFFSET_CLAMP, a.offset));
-        b.offset = Math.max(-OFFSET_CLAMP, Math.min(OFFSET_CLAMP, b.offset));
-        a.collideTimer = Math.max(a.collideTimer, 0.3 * a.char.collisionMul);
-        b.collideTimer = Math.max(b.collideTimer, 0.3 * b.char.collisionMul);
+
+        if (a.shielded !== b.shielded) {
+          // 방패 든 차는 범퍼처럼 튼튼해서 안 밀리고, 부딪힌 상대 차만 옆으로 세게 튕겨나간다
+          const bumped = a.shielded ? b : a;
+          const bumpDir = a.shielded ? -dir : dir;
+          bumped.offset += bumpDir * 10;
+          bumped.offset = Math.max(-OFFSET_CLAMP, Math.min(OFFSET_CLAMP, bumped.offset));
+          bumped.collideTimer = Math.max(bumped.collideTimer, 0.4);
+        } else {
+          a.offset += dir * 3;
+          b.offset -= dir * 3;
+          a.offset = Math.max(-OFFSET_CLAMP, Math.min(OFFSET_CLAMP, a.offset));
+          b.offset = Math.max(-OFFSET_CLAMP, Math.min(OFFSET_CLAMP, b.offset));
+          a.collideTimer = Math.max(a.collideTimer, 0.3 * a.char.collisionMul);
+          b.collideTimer = Math.max(b.collideTimer, 0.3 * b.char.collisionMul);
+        }
       }
     }
   }
@@ -429,24 +443,31 @@ function rollItem(char) {
 function useItem(car) {
   if (!car.item) return;
   const item = car.item;
-  car.item = null;
-  if (car.isPlayer) updateItemUI();
 
   if (item === "shield") {
+    car.item = null;
     car.shielded = true;
-    if (car.isPlayer) playSound("item");
+    car.shieldTimer = SHIELD_DURATION;
+    if (car.isPlayer) { updateItemUI(); playSound("item"); }
   } else if (item === "banana") {
+    car.item = null;
     bananas.push({ s: mod(car.distance - 16, TRACK.L), offset: car.offset, active: true });
-    if (car.isPlayer) playSound("item");
+    if (car.isPlayer) { updateItemUI(); playSound("item"); }
   } else if (item === "rocket") {
     let target = null, best = Infinity;
     cars.forEach(other => {
       if (other === car || other.finished) return;
       const d = other.distance - car.distance; // 누적거리이므로 그대로 비교(양수면 앞차)
-      if (d > 0 && d < best && d < 260) { best = d; target = other; }
+      if (d > 0 && d < best && d < ROCKET_RANGE) { best = d; target = other; }
     });
-    if (target) hitCar(target, "rocket");
-    if (car.isPlayer) playSound("item");
+    if (target) {
+      // 맞힐 차가 있을 때만 아이템을 소비한다 (앞에 아무도 없으면 헛되이 사라지지 않게)
+      car.item = null;
+      hitCar(target, "rocket");
+      if (car.isPlayer) { updateItemUI(); playSound("item"); }
+    } else if (car.isPlayer) {
+      playSound("wrong"); // 맞힐 대상이 없다는 걸 알려주는 짧은 신호음(아이템은 그대로 유지)
+    }
   }
 }
 
@@ -512,9 +533,12 @@ function resolveQuestion(answer) {
   const resultEl = document.getElementById("mathResult");
   resultEl.classList.remove("hidden");
 
+  // 차량 효과(부스터/감속)는 바로 적용해서 팝업이 닫히자마자 효과가 시작되게 하고,
+  // 배너/효과음 같은 "확실히 보이는" 연출은 팝업이 닫힌 뒤(showRaceFeedback)로 미룬다.
+  // 팝업이 열려있는 동안 배너를 띄우면 어두운 팝업 배경에 가려 안 보이기 때문.
   if (isCorrect) {
     playSound("correct");
-    resultEl.textContent = "정답이에요! 🎉";
+    resultEl.textContent = `정답이에요! 🎉 정답은 ${currentQuestion.correct}`;
     activateBooster(player);
   } else {
     playSound("wrong");
@@ -523,7 +547,7 @@ function resolveQuestion(answer) {
   }
 
   document.querySelectorAll(".answerBtn").forEach(b => b.disabled = true);
-  setTimeout(() => { hideMathPopup(); }, 1300);
+  setTimeout(() => { hideMathPopup(); showRaceFeedback(isCorrect); }, 1300);
 }
 
 function hideMathPopup(instant) {
@@ -531,16 +555,24 @@ function hideMathPopup(instant) {
   document.getElementById("mathPopup").classList.add("hidden");
 }
 
+// 팝업이 닫힌 직후 레이싱 화면에서 부스터/감속을 눈에 띄게 알려주는 배너
+function showRaceFeedback(isCorrect) {
+  if (isCorrect) {
+    playSound("boost");
+    const banner = document.getElementById("boostBanner");
+    banner.classList.remove("hidden");
+    setTimeout(() => banner.classList.add("hidden"), BOOST_DURATION * 1000);
+  } else {
+    const banner = document.getElementById("slowBanner");
+    banner.classList.remove("hidden");
+    setTimeout(() => banner.classList.add("hidden"), 1500);
+  }
+}
+
 function activateBooster(car) {
   car.boosted = true;
   car.boostTimer = BOOST_DURATION;
   car.shielded = false;
-  if (car.isPlayer) {
-    playSound("boost");
-    const banner = document.getElementById("boostBanner");
-    banner.classList.remove("hidden");
-    setTimeout(() => banner.classList.add("hidden"), 1500);
-  }
 }
 
 document.querySelectorAll(".answerBtn").forEach(btn => {
@@ -754,13 +786,22 @@ function drawCar(car) {
   ctx.translate(car.worldX, car.worldY);
   ctx.rotate(car.heading);
 
-  // 부스터 발광 효과
+  // 부스터 발광 효과 (밝고 화려한 무지개색 - 정답 보상)
   if (car.boosted) {
     const glowR = 22 + Math.sin(performance.now() / 60) * 4;
     const hue = (performance.now() / 5) % 360;
     ctx.fillStyle = `hsla(${hue}, 90%, 60%, 0.45)`;
     ctx.beginPath();
     ctx.arc(0, 0, glowR, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // 감속 효과 (칙칙한 회색 연기 - 오답 페널티, 부스터와 확실히 구분되는 색/움직임)
+  if (car.mathSlowTimer > 0) {
+    const wobble = Math.sin(performance.now() / 90) * 3;
+    ctx.fillStyle = "rgba(120,120,120,0.5)";
+    ctx.beginPath();
+    ctx.arc(-w / 2 - 4 + wobble, 0, 8, 0, Math.PI * 2);
+    ctx.arc(-w / 2 - 12 - wobble, -4, 6, 0, Math.PI * 2);
     ctx.fill();
   }
   // 방패 효과
