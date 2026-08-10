@@ -6,9 +6,9 @@
 
 /* ---------- 캐릭터 정의 ---------- */
 const CHARACTERS = [
-  { id:"theo",   name:"Theo",   color:"#ff4d4d", desc:"최고 속도가 빠름 (충돌시 더 많이 느려짐)", speedMul:1.16, turnMul:1.00, collisionMul:1.6, itemLuck:1.0, timeBonus:0 },
+  { id:"theo",   name:"Theo",   color:"#ff4d4d", desc:"특별한 약점 없이 안정적으로 달림",           speedMul:1.00, turnMul:1.00, collisionMul:1.0, itemLuck:1.0, timeBonus:0 },
   { id:"jj",     name:"JJ",     color:"#3aa0ff", desc:"코너링과 좌우 이동이 좋음",                 speedMul:1.00, turnMul:1.35, collisionMul:1.0, itemLuck:1.0, timeBonus:0 },
-  { id:"stucob", name:"STUCOB", color:"#8a6d3b", desc:"무거워서 부딪혀도 덜 느려짐",               speedMul:0.96, turnMul:0.90, collisionMul:0.45,itemLuck:1.0, timeBonus:0 },
+  { id:"stucob", name:"STUCOB", color:"#8a6d3b", desc:"무거워서 부딪혀도 덜 느려짐",               speedMul:1.00, turnMul:0.90, collisionMul:0.45,itemLuck:1.0, timeBonus:0 },
   { id:"mj",     name:"MJ",     color:"#3ecf5f", desc:"속도와 조작이 균형잡힌 기본형",             speedMul:1.00, turnMul:1.00, collisionMul:1.0, itemLuck:1.0, timeBonus:0 },
   { id:"jayce",  name:"Jayce",  color:"#a259ff", desc:"아이템 상자에서 좋은 아이템이 잘 나옴",     speedMul:1.00, turnMul:1.00, collisionMul:1.0, itemLuck:2.2, timeBonus:0 },
   { id:"cho",    name:"Cho",    color:"#ff9f1c", desc:"곱셈 문제 제한시간이 1초 더 김",            speedMul:1.00, turnMul:1.00, collisionMul:1.0, itemLuck:1.0, timeBonus:1 },
@@ -61,7 +61,7 @@ const OFFTRACK_LIMIT = 40;      // 이 값보다 오프셋이 크면 트랙 이�
 const OFFSET_CLAMP = 62;
 const TOTAL_LAPS = 3;
 const QUESTION_TIME = 5;
-const BOOST_DURATION = 5;
+const BOOST_DURATION = 2;   // 정답 1개당 부스터 지속시간(초)
 const BOOST_SPEED_MUL = 1.4;
 
 /* 트랙 위 상자 배치 (진행거리 비율, 좌우 오프셋) */
@@ -82,7 +82,6 @@ let cars = [];
 let boxes = [];
 let bananas = [];
 let player = null;
-let gauge = 0;
 let raceStats = { total: 0, correct: 0, wrongList: [] };
 let mathPopupActive = false;
 let currentQuestion = null;
@@ -212,14 +211,12 @@ function startRace() {
   }));
   bananas = [];
 
-  gauge = 0;
   raceStats = { total: 0, correct: 0, wrongList: [] };
   mathPopupActive = false;
   raceEnding = false;
   finishOrderCounter = 0;
   currentDifficulty = diff;
 
-  updateGaugeUI();
   updateItemUI();
   document.getElementById("boostBanner").classList.add("hidden");
   document.getElementById("finishBanner").classList.add("hidden");
@@ -518,13 +515,7 @@ function resolveQuestion(answer) {
   if (isCorrect) {
     playSound("correct");
     resultEl.textContent = "정답이에요! 🎉";
-    gauge++;
-    updateGaugeUI();
-    if (gauge >= 5) {
-      gauge = 0;
-      updateGaugeUI();
-      activateBooster(player);
-    }
+    activateBooster(player);
   } else {
     playSound("wrong");
     resultEl.textContent = `아깝다! 정답은 ${currentQuestion.correct}`;
@@ -576,11 +567,6 @@ function updateHUD() {
   computeRanks();
   document.getElementById("hudRank").textContent = `순위 ${player.rank}/${cars.length}`;
   document.getElementById("hudLap").textContent = `바퀴 ${player.lap}/${TOTAL_LAPS}`;
-}
-
-function updateGaugeUI() {
-  document.getElementById("gaugeText").textContent = `${gauge}/5`;
-  document.getElementById("gaugeBar").style.width = (gauge / 5 * 100) + "%";
 }
 
 const ITEM_NAMES = { banana: "🍌 바나나", rocket: "🚀 로켓", shield: "🛡️ 방패" };
