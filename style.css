@@ -30,7 +30,7 @@ h2 { font-size: 1.3rem; text-align: center; margin: 14px 0 8px; color: #2b6cb0; 
 
 #charList, #diffList, #modeList {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 10px;
   padding: 0 8px;
   max-width: 560px;
@@ -56,8 +56,8 @@ h2 { font-size: 1.3rem; text-align: center; margin: 14px 0 8px; color: #2b6cb0; 
   margin: 0 auto 6px;
   border: 3px solid #333;
 }
-.charName { font-weight: bold; font-size: 1.1rem; }
-.charDesc { font-size: 0.85rem; color: #555; margin-top: 4px; }
+.charName { font-weight: bold; font-size: 1.1rem; word-break: keep-all; overflow-wrap: normal; white-space: nowrap; }
+.charDesc { font-size: 0.85rem; color: #555; margin-top: 4px; word-break: keep-all; overflow-wrap: normal; }
 
 .bigBtn {
   font-size: 1.4rem;
@@ -247,7 +247,6 @@ h2 { font-size: 1.3rem; text-align: center; margin: 14px 0 8px; color: #2b6cb0; 
 
 @media (max-width: 560px) {
   h1 { font-size: 1.5rem; }
-  #charList, #diffList, #modeList { grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); }
   .charCard, .diffCard { padding: 8px; }
   #mathQuestion { font-size: 2rem; }
   .answerBtn { font-size: 1.4rem; padding: 12px 18px; min-width: 70px; }

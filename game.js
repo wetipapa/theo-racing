@@ -362,6 +362,8 @@ function updateCar(car, dt) {
   if (car.mathSlowTimer > 0) speed *= 0.5;
   if (car.collideTimer > 0) speed *= 0.6;
   speed = Math.max(speed, BASE_SPEED * 0.18);
+  // 이지모드(시간제한 없음)는 문제를 푸는 동안 모든 차를 완전히 멈춰서(레이스 자체를 일시정지) 여유롭게 고민할 수 있게 한다
+  if (mathPopupActive && !currentMode.timeLimited) speed = 0;
 
   if (!car.finished) {
     car.distance += speed * dt;
