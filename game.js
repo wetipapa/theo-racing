@@ -22,6 +22,11 @@ const DIFFICULTIES = [
   { id:"all", label:"전체(2~9단)", tables:[2,3,4,5,6,7,8,9] },
 ];
 
+const MODES = [
+  { id:"easy", label:"🐢 이지모드", desc:"곱셈 문제 시간제한 없음", timeLimited:false },
+  { id:"hard", label:"🔥 하드모드", desc:"곱셈 문제 시간제한 있음 (기존 방식)", timeLimited:true },
+];
+
 /* ---------- 트랙 수학 (직선 - 아래에서 위로) ----------
    회전 코너 없이 완전히 곧은 세로 트랙. 진행방향이 항상 "위"로 고정되므로
    카메라도 절대 회전하지 않고, 오른쪽/왼쪽 키가 트랙 어디서든 항상
@@ -83,6 +88,7 @@ const BOX_LAYOUT = [
 /* ---------- 전역 상태 ---------- */
 let selectedCharId = "mj";
 let selectedDiffId = "2-3";
+let selectedModeId = "hard";
 let cars = [];
 let boxes = [];
 let bananas = [];
@@ -138,6 +144,7 @@ function playSound(name) {
    ============================================================ */
 const charListEl = document.getElementById("charList");
 const diffListEl = document.getElementById("diffList");
+const modeListEl = document.getElementById("modeList");
 
 function buildStartScreen() {
   CHARACTERS.forEach(ch => {
@@ -167,6 +174,19 @@ function buildStartScreen() {
       card.classList.add("selected");
     });
     diffListEl.appendChild(card);
+  });
+
+  MODES.forEach(m => {
+    const card = document.createElement("div");
+    card.className = "diffCard" + (m.id === selectedModeId ? " selected" : "");
+    card.dataset.id = m.id;
+    card.innerHTML = `<div class="charName">${m.label}</div><div class="charDesc">${m.desc}</div>`;
+    card.addEventListener("click", () => {
+      selectedModeId = m.id;
+      [...modeListEl.children].forEach(c => c.classList.remove("selected"));
+      card.classList.add("selected");
+    });
+    modeListEl.appendChild(card);
   });
 
   document.getElementById("startBtn").addEventListener("click", () => {
@@ -223,6 +243,7 @@ function startRace() {
   raceEnding = false;
   finishOrderCounter = 0;
   currentDifficulty = diff;
+  currentMode = MODES.find(m => m.id === selectedModeId);
 
   updateItemUI();
   document.getElementById("boostBanner").classList.add("hidden");
@@ -236,6 +257,7 @@ function startRace() {
 }
 
 let currentDifficulty = DIFFICULTIES[0];
+let currentMode = MODES.find(m => m.id === selectedModeId);
 
 /* ============================================================
    화면 전환
@@ -268,8 +290,8 @@ function circDist(a, b) {
 function update(dt) {
   if (raceEnding) { render(); return; }
 
-  // 곱셈 문제 타이머
-  if (mathPopupActive && !questionAnswered) {
+  // 곱셈 문제 타이머 (이지모드는 시간제한이 없어 그대로 통과)
+  if (mathPopupActive && !questionAnswered && currentQuestion.timeLimited) {
     questionTimeLeft -= dt;
     const pct = Math.max(0, questionTimeLeft / currentQuestion.timeLimit) * 100;
     document.getElementById("mathTimerFill").style.width = pct + "%";
@@ -533,6 +555,7 @@ function openMathPopup(car) {
   mathPopupActive = true;
   questionAnswered = false;
   currentQuestion = generateQuestion();
+  currentQuestion.timeLimited = currentMode.timeLimited;
   currentQuestion.timeLimit = QUESTION_TIME + car.char.timeBonus;
   questionTimeLeft = currentQuestion.timeLimit;
 
@@ -543,6 +566,7 @@ function openMathPopup(car) {
     btn.disabled = false;
   });
   document.getElementById("mathResult").classList.add("hidden");
+  document.getElementById("mathTimerBar").classList.toggle("hidden", !currentQuestion.timeLimited);
   document.getElementById("mathTimerFill").style.width = "100%";
   document.getElementById("mathPopup").classList.remove("hidden");
 }
