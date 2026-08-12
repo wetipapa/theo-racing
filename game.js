@@ -829,14 +829,19 @@ const ctx = canvas.getContext("2d");
 // 좌/우 조작이 트랙 어디서든(직선이든 커브든) 항상 화면의 좌/우와 일치한다.
 const CAMERA = { focusYRatio: 0.68, zoom: 1.2 };
 
+// applyCameraTransform()이 화면 전체에 건 회전각. 상자처럼 "항상 화면에 똑바로 서 있어야
+// 하는" 것들은 이 각도만큼 되돌려서 그린다.
+let cameraRotation = 0;
+
 function applyCameraTransform() {
   const focusX = canvas.width / 2;
   const focusY = canvas.height * CAMERA.focusYRatio;
   const centerPos = trackPos(player.s); // 오프셋 무시한 중심선 위치(좌우 흔들림 없이 부드럽게 스크롤)
   const heading = trackFrame(player.s).heading;
 
+  cameraRotation = -(heading + Math.PI / 2);
   ctx.translate(focusX, focusY);
-  ctx.rotate(-(heading + Math.PI / 2)); // 진행방향이 화면 위쪽(−y)을 향하도록 회전
+  ctx.rotate(cameraRotation); // 진행방향이 화면 위쪽(−y)을 향하도록 회전
   ctx.scale(CAMERA.zoom, CAMERA.zoom);
   ctx.translate(-centerPos.x, -centerPos.y);
 }
@@ -970,6 +975,9 @@ function drawBoxes() {
     const p = carWorldPos(box.s, box.offset);
     ctx.save();
     ctx.translate(p.x, p.y);
+    // 카메라 회전을 되돌린다. 안 그러면 반대편 직선(카메라가 180° 돌아간 구간)에서
+    // "?"와 "×"가 뒤집혀 보이고, 커브에서는 상자가 마름모처럼 기울어 보인다.
+    ctx.rotate(-cameraRotation);
     const size = 20;
     if (box.type === "item") {
       ctx.fillStyle = "#ffd166";
