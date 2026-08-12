@@ -103,6 +103,10 @@ h2 { font-size: 1.3rem; text-align: center; margin: 14px 0 8px; color: #2b6cb0; 
 
 .howto { font-size: 1rem; line-height: 1.7; margin: 14px auto; max-width: 560px; color: #333; }
 
+.blogFooter { font-size: 0.9rem; margin: 18px auto 4px; color: #777; }
+.blogFooter a { color: #2b6cb0; font-weight: bold; text-decoration: none; }
+.blogFooter a:hover, .blogFooter a:active { text-decoration: underline; }
+
 /* ---------- 레이싱 화면 ---------- */
 #raceScreen { width: 100%; }
 
