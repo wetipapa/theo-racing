@@ -804,14 +804,13 @@ function render() {
   drawMinimap();
 }
 
-// 화면 우측 상단에 전체 순위를 세로 막대로 보여주는 미니 순위표.
-// 트랙이 곧은 직선이라 모양을 그대로 보여주는 미니맵보다, 각 차량의
-// 전체 진행률(바퀴 포함)을 세로 막대 위 점으로 보여주는 편이 더 직관적이다.
+// 화면 우측 상단에 실제 트랙 모양을 그대로 축소해서 보여주는 미니맵.
+// 각 차량 점은 실제 월드 좌표(worldX/worldY)를 그대로 축소해서 찍기 때문에
+// 커브를 돌 때 미니맵 위의 점도 똑같이 커브를 돌며, 항상 레이스와 정확히 연동된다.
 function drawMinimap() {
-  const boxW = 54, boxH = 190, pad = 12;
+  const boxW = 96, boxH = 208, pad = 12;
   const px = canvas.width - boxW - 10, py = 10;
-  const lineX = px + boxW / 2;
-  const top = py + pad, bottom = py + boxH - pad;
+  const T = TRACK;
 
   ctx.save();
   ctx.fillStyle = "rgba(255,255,255,0.88)";
@@ -821,29 +820,44 @@ function drawMinimap() {
   if (ctx.roundRect) ctx.roundRect(px, py, boxW, boxH, 10); else ctx.rect(px, py, boxW, boxH);
   ctx.fill(); ctx.stroke();
 
-  ctx.fillStyle = "#222";
-  ctx.font = "14px sans-serif";
-  ctx.textAlign = "center";
-  ctx.fillText("🏁", lineX, top - 2);
+  // 트랙 전체(도로 폭까지 포함)를 감싸는 실제 범위를 구해서, 미니맵 박스 안에 꼭 맞게
+  // 축소하는 배율과 오프셋을 계산한다.
+  const margin = T.halfWidth + 6;
+  const trackLeft = T.cx - T.radius - margin, trackRight = T.cx + T.radius + margin;
+  const trackTop = T.cy - T.straightLen / 2 - T.radius - margin, trackBottom = T.cy + T.straightLen / 2 + T.radius + margin;
+  const scale = Math.min((boxW - pad * 2) / (trackRight - trackLeft), (boxH - pad * 2) / (trackBottom - trackTop));
+  const offX = px + boxW / 2 - (trackLeft + trackRight) / 2 * scale;
+  const offY = py + boxH / 2 - (trackTop + trackBottom) / 2 * scale;
+  const toMini = (x, y) => ({ x: x * scale + offX, y: y * scale + offY });
 
-  ctx.strokeStyle = "#8d8d95";
-  ctx.lineWidth = 6;
-  ctx.lineCap = "round";
+  // 실제 트랙 중심선을 그대로 축소해서 그린다(직선·커브 모양이 실제 레이스와 동일)
   ctx.beginPath();
-  ctx.moveTo(lineX, bottom);
-  ctx.lineTo(lineX, top);
+  const steps = 120;
+  for (let i = 0; i <= steps; i++) {
+    const p = trackPos((i / steps) * T.L);
+    const m = toMini(p.x, p.y);
+    if (i === 0) ctx.moveTo(m.x, m.y); else ctx.lineTo(m.x, m.y);
+  }
+  ctx.closePath();
+  ctx.strokeStyle = "#8d8d95";
+  ctx.lineWidth = Math.max(3, T.halfWidth * 2 * scale);
+  ctx.lineJoin = "round"; ctx.lineCap = "round";
   ctx.stroke();
 
-  const totalDist = TOTAL_LAPS * TRACK.L;
-  cars.forEach((car, i) => {
-    const progress = Math.min(1, car.distance / totalDist);
-    const y = bottom - progress * (bottom - top);
-    const x = lineX + (i - (cars.length - 1) / 2) * 5; // 겹치지 않게 살짝 펼침
+  // 출발선=결승선 표시
+  const fin = toMini(T.cx + T.radius, T.cy + T.straightLen / 2);
+  ctx.font = "12px sans-serif";
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText("🏁", fin.x, fin.y - 12);
+
+  // 각 차량을 실제 위치 그대로(오프셋 포함) 미니맵에 축소해서 찍는다
+  cars.forEach(car => {
+    const m = toMini(car.worldX, car.worldY);
     ctx.beginPath();
     ctx.fillStyle = car.char.color;
-    ctx.arc(x, y, car.isPlayer ? 5 : 3.5, 0, Math.PI * 2);
+    ctx.arc(m.x, m.y, car.isPlayer ? 4.5 : 3.2, 0, Math.PI * 2);
     ctx.fill();
-    if (car.isPlayer) { ctx.strokeStyle = "#222"; ctx.lineWidth = 1.5; ctx.stroke(); }
+    if (car.isPlayer) { ctx.strokeStyle = "#222"; ctx.lineWidth = 1.3; ctx.stroke(); }
   });
 
   ctx.restore();
