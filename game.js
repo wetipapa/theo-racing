@@ -136,6 +136,12 @@ const ROCKET_STUN_DURATION = 1.0; // 맞은 차가 멈칫하는 시간(초)
 const ROCKET_STUN_FACTOR = 0.08;  // 맞은 차의 속도 배율(거의 정지)
 // AI 속도 변주 폭을 좁혀서(예전보다 랜덤성 축소) 순위가 운보다 곱셈 실력에 더 좌우되게 한다
 const AI_SPEED_MIN = 0.92, AI_SPEED_MAX = 1.03;
+// 차량마다 고정된 좌우 "차선"을 배정해서 그 안에서만 살짝 흔들리며 달리게 한다.
+// (예전엔 6대가 전부 같은 넓은 구간을 오가며 스쳐서, 위상이 비슷한 차끼리는 계속
+// 서로 밀어내다가 다시 모여들며 그 자리에서 버벅이는 문제가 있었다. 차선을 나누면
+// 서로 다른 차는 애초에 자주 겹치지 않아서 훨씬 자연스럽게 달린다.)
+const LANE_SPACING = 13;
+const LANE_WOBBLE = 7;
 
 /* 트랙 위 상자 배치 (진행거리 비율, 좌우 오프셋) */
 const BOX_LAYOUT = [
@@ -264,10 +270,12 @@ function buildStartScreen() {
 function makeAiPhase(i) { return i * 1.7 + Math.random() * 2; }
 
 function createCar(char, isPlayer, startIndex) {
+  const laneOffset = (startIndex - 2.5) * LANE_SPACING;
   return {
     char, isPlayer,
-    distance: -startIndex * 24,   // 출발선에서 약간씩 다르게 배치(겹침 방지)
-    offset: (startIndex - 2.5) * 9, // 트랙 중앙 근처에서 출발(이탈 방지)
+    distance: 0,        // 모든 차가 같은 출발선(s=0)에 나란히 선다
+    offset: laneOffset, // 좌우로만 차선만큼 벌려서 배치(겹침 방지), 이후 AI는 이 차선을 유지하며 달린다
+    laneOffset,
     lap: 1,
     finished: false,
     finishOrder: -1,
@@ -409,7 +417,9 @@ function updateCar(car, dt) {
       if (input.right) car.offset += steer * dt;
     }
   } else if (!car.finished) {
-    const target = Math.sin(car.distance * 0.008 + car.aiPhase) * 18;
+    // 자기 차선(laneOffset)을 중심으로 살짝만 흔들며 달린다(차선 자체가 다르므로
+    // 다른 차와 계속 겹칠 일이 적고, 자연스럽게 앞지르기 할 때만 스친다)
+    const target = car.laneOffset + Math.sin(car.distance * 0.008 + car.aiPhase) * LANE_WOBBLE;
     car.offset += (target - car.offset) * Math.min(1, dt * 2.2);
   }
   car.offset = Math.max(-OFFSET_CLAMP, Math.min(OFFSET_CLAMP, car.offset));
@@ -529,6 +539,10 @@ function handleCarCollisions() {
       const a = cars[i], b = cars[j];
       if (a.finished || b.finished) continue;
       if (a.boosted || b.boosted) continue;
+      // AI끼리는 서로 부딪혀 밀어내지 않는다. 6대가 좁은 도로를 나눠 쓰다 보면 AI 두세 대가
+      // 계속 서로 밀어내다 다시 모여들며 그 자리에서 버벅이는 문제가 있었는데, AI-AI 충돌을
+      // 없애면 그 문제가 근본적으로 사라진다(플레이어가 낀 충돌은 게임성을 위해 그대로 둔다).
+      if (!a.isPlayer && !b.isPlayer) continue;
       if (circDist(a.s, b.s) < 18 && Math.abs(a.offset - b.offset) < 24) {
         const dir = a.offset <= b.offset ? -1 : 1;
 
