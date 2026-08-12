@@ -41,11 +41,11 @@
       </div>
       <div class="tutorialCard">
         <div class="tutorialIcon">🕹️</div>
-        <div class="tutorialText"><b>조작</b><br>← → (또는 A / D)로 좌우 이동, 스페이스바(모바일은 🎁 버튼)로 아이템 사용.</div>
+        <div class="tutorialText"><b>조작</b><br>← → (또는 A / D)로 좌우 이동. 아래 <b>아이템 칸</b>을 누르면 그 아이템을 써요 (스페이스바는 맨 왼쪽 칸).</div>
       </div>
       <div class="tutorialCard">
         <div class="tutorialIcon">❔</div>
-        <div class="tutorialText"><b>물음표 상자</b><br>지나가면 아이템을 하나 얻어요. 이미 아이템을 들고 있으면 새로 안 나와요.</div>
+        <div class="tutorialText"><b>물음표 상자</b><br>지나가면 아이템을 하나 얻어요. <b>최대 3개</b>까지 모아둘 수 있어요.</div>
       </div>
       <div class="tutorialCard">
         <div class="tutorialIcon">✖️</div>
@@ -89,7 +89,7 @@
 
     <p class="howto">
       PC: ← → 또는 A / D 키로 이동 · 스페이스바로 아이템 사용<br>
-      모바일: 화면 아래 큰 버튼으로 이동하고 아이템을 사용해요<br>
+      아이템은 아래 칸에 3개까지 모이고, 쓰고 싶은 칸을 누르면 돼요<br>
       트랙 위 <b>일반 상자</b>는 아이템, <b>× 상자</b>는 곱셈 문제예요!
     </p>
 
@@ -101,7 +101,6 @@
     <div id="hud">
       <div class="hudBox" id="hudRank">순위 -/6</div>
       <div class="hudBox" id="hudLap">바퀴 -/3</div>
-      <div class="hudBox" id="hudItem">🎁 <span id="itemText">없음</span></div>
       <button id="muteBtn" class="hudBox">🔊</button>
     </div>
 
@@ -125,7 +124,11 @@
 
     <div id="mobileControls">
       <button id="btnLeft" class="ctrlBtn">◀</button>
-      <button id="btnItem" class="ctrlBtn itemCtrlBtn">🎁</button>
+      <div id="itemSlots">
+        <button class="itemSlot" data-slot="0"></button>
+        <button class="itemSlot" data-slot="1"></button>
+        <button class="itemSlot" data-slot="2"></button>
+      </div>
       <button id="btnRight" class="ctrlBtn">▶</button>
     </div>
   </section>

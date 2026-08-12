@@ -130,6 +130,9 @@ const BOOST_SPEED_MUL = 1.5;
 // 오답 페널티: 정답 보상(부스터)에 밀리지 않도록 확실히 느껴지는 세기로 조정
 const WRONG_SLOW_DURATION = 2.5;
 const WRONG_SLOW_FACTOR = 0.32;
+// 아이템은 칸에 모아둔다. 플레이어는 3칸까지 모을 수 있고, AI는 예전처럼 1개만 들고
+// 바로 쓴다(AI까지 3개를 쟁이면 바나나·로켓이 한꺼번에 쏟아져 정신없어진다).
+const PLAYER_ITEM_SLOTS = 3;
 const SHIELD_DURATION = 5;  // 방패는 사용한 순간부터 5초가 지나면 사라진다
 const ROCKET_FLIGHT_TIME = 0.35;  // 발사~명중까지 로켓이 날아가는 시간(초)
 const ROCKET_STUN_DURATION = 1.0; // 맞은 차가 멈칫하는 시간(초)
@@ -292,7 +295,7 @@ function createCar(char, isPlayer, startIndex) {
     lap: 1,
     finished: false,
     finishOrder: -1,
-    item: null,
+    items: [],
     shielded: false, shieldTimer: 0,
     boosted: false, boostTimer: 0,
     hitTimer: 0, hitSlowFactor: 1, hitSource: null, impactFlashTimer: 0,
@@ -503,8 +506,9 @@ function updateCar(car, dt) {
     const dO = Math.abs(car.offset - box.offset);
     if (dS < 11 && dO < BOX_PICKUP_RANGE) {
       if (box.type === "item") {
-        if (!car.item) {
-          car.item = rollItem(car.char);
+        const capacity = car.isPlayer ? PLAYER_ITEM_SLOTS : 1;
+        if (car.items.length < capacity) {
+          car.items.push(rollItem(car.char));
           box.active = false; box.respawnTimer = 4.5;
           if (car.isPlayer) { playSound("item"); updateItemUI(); }
           if (!car.isPlayer) car.aiItemDelay = 0.5 + Math.random() * 1.2;
@@ -532,9 +536,9 @@ function updateCar(car, dt) {
   });
 
   // --- AI 아이템 자동 사용 ---
-  if (!car.isPlayer && car.item) {
+  if (!car.isPlayer && car.items.length) {
     car.aiItemDelay -= dt;
-    if (car.aiItemDelay <= 0) useItem(car);
+    if (car.aiItemDelay <= 0) useItem(car, 0);
   }
 }
 
@@ -628,24 +632,22 @@ function rollItem(char) {
   return "shield";
 }
 
-function useItem(car) {
-  if (!car.item) return;
-  const item = car.item;
+function useItem(car, slot) {
+  const item = car.items[slot];
+  if (!item) return;
+  car.items.splice(slot, 1);   // 쓴 칸만 비우고 뒤 칸이 앞으로 당겨진다
 
   if (item === "shield") {
-    car.item = null;
     car.shielded = true;
     car.shieldTimer = SHIELD_DURATION;
     if (car.isPlayer) { updateItemUI(); playSound("item"); }
   } else if (item === "banana") {
-    car.item = null;
     bananas.push({ s: mod(car.distance - 16, TRACK.L), offset: car.offset, active: true });
     if (car.isPlayer) { updateItemUI(); playSound("item"); }
   } else if (item === "rocket") {
     // 앞차만 맞히던 예전 방식은 앞에 아무도 없으면 로켓을 계속 들고만 있어야 하는
     // 문제가 있었다. 이제는 앞/뒤 상관없이 트랙에서 가장 가까운 상대를 조준해서
     // 쏘는 즉시 무조건 발사(아이템 소비)되도록 바꿨다.
-    car.item = null;
     if (car.isPlayer) { updateItemUI(); playSound("item"); }
 
     let target = null, best = Infinity;
@@ -675,9 +677,10 @@ function hitCar(car, source) {
   }
 }
 
-function useItemInput() {
+// slot이 없으면(스페이스바) 맨 앞 칸부터 쓴다.
+function useItemInput(slot) {
   if (screenName !== "race" || mathPopupActive || !player || player.finished) return;
-  if (player.item) useItem(player);
+  useItem(player, slot === undefined ? 0 : slot);
 }
 
 /* ---------- 곱셈 문제 ---------- */
@@ -802,9 +805,17 @@ function updateHUD() {
   document.getElementById("hudLap").textContent = `바퀴 ${player.lap}/${TOTAL_LAPS}`;
 }
 
-const ITEM_NAMES = { banana: "🍌 바나나", rocket: "🚀 로켓", shield: "🛡️ 방패" };
+const ITEM_NAMES = { banana: "바나나", rocket: "로켓", shield: "방패" };
+const ITEM_EMOJI = { banana: "🍌", rocket: "🚀", shield: "🛡️" };
+// 아이템 칸은 좌우 버튼과 같은 줄에 둬서, 손가락이 있는 곳에서 바로 누를 수 있게 한다.
+// 빈 칸도 계속 보여줘야 "몇 개 모았는지"가 눈에 들어온다.
 function updateItemUI() {
-  document.getElementById("itemText").textContent = player.item ? ITEM_NAMES[player.item] : "없음";
+  document.querySelectorAll(".itemSlot").forEach((btn, i) => {
+    const item = player ? player.items[i] : null;
+    btn.textContent = item ? ITEM_EMOJI[item] : "";
+    btn.classList.toggle("filled", !!item);
+    btn.setAttribute("aria-label", item ? ITEM_NAMES[item] + " 쓰기" : "빈 칸");
+  });
 }
 
 /* ============================================================
@@ -993,12 +1004,24 @@ function drawBananas() {
     const p = carWorldPos(b.s, b.offset);
     ctx.save();
     ctx.translate(p.x, p.y);
-    ctx.fillStyle = "#f4d03f";
+    // 예전엔 기울인 타원이라 바나나로 안 보였다. 바깥/안쪽 호를 이어붙여 초승달 모양을
+    // 만들고 양 끝에 짙은 꼭지를 찍어서 한눈에 바나나로 보이게 한다.
+    ctx.rotate(-0.5);
+    const R = 11, r = 6.5, a0 = Math.PI * 0.08, a1 = Math.PI * 0.92;
+    ctx.fillStyle = "#ffd93d";
     ctx.strokeStyle = "#a67c00";
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.ellipse(0, 0, 9, 5, Math.PI / 4, 0, Math.PI * 2);
+    ctx.arc(0, -2, R, a0, a1);           // 바깥쪽(볼록한) 곡선
+    ctx.arc(0, -2, r, a1, a0, true);     // 안쪽(오목한) 곡선
+    ctx.closePath();
     ctx.fill(); ctx.stroke();
+    ctx.fillStyle = "#7a5c1e";           // 양 끝 꼭지
+    [a0, a1].forEach(a => {
+      ctx.beginPath();
+      ctx.arc(Math.cos(a) * (R + r) / 2, -2 + Math.sin(a) * (R + r) / 2, 2.2, 0, Math.PI * 2);
+      ctx.fill();
+    });
     ctx.restore();
   });
 }
@@ -1167,7 +1190,13 @@ function bindHold(el, onDown, onUp) {
 }
 bindHold(document.getElementById("btnLeft"), () => input.left = true, () => input.left = false);
 bindHold(document.getElementById("btnRight"), () => input.right = true, () => input.right = false);
-document.getElementById("btnItem").addEventListener("pointerdown", e => { e.preventDefault(); ensureAudio(); useItemInput(); });
+// 아이템 칸은 각각 자기 칸의 아이템을 쓴다 — 어떤 아이템이 나갈지 눈으로 보고 누른다.
+document.querySelectorAll(".itemSlot").forEach(btn => {
+  btn.addEventListener("pointerdown", e => {
+    e.preventDefault(); ensureAudio();
+    useItemInput(Number(btn.dataset.slot));
+  });
+});
 
 document.getElementById("muteBtn").addEventListener("click", () => {
   muted = !muted;

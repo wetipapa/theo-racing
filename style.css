@@ -258,8 +258,28 @@ h2 { font-size: 1.3rem; text-align: center; margin: 14px 0 8px; color: #2b6cb0; 
   user-select: none;
 }
 .ctrlBtn:active { transform: translateY(3px); box-shadow: 0 2px 0 #33579c; }
-.itemCtrlBtn { flex: 1; background: #ffb703; box-shadow: 0 5px 0 #b3800a; }
-.itemCtrlBtn:active { box-shadow: 0 2px 0 #b3800a; }
+/* 아이템 칸 3개를 좌우 버튼과 같은 줄 가운데에 둔다. 예전엔 화면 맨 위에 작은 글씨로
+   "🎁 바나나"라고만 떠서, 무슨 아이템인지도 눈에 안 들어오고 누르는 버튼과도 멀었다. */
+#itemSlots { flex: 3; display: flex; gap: 6px; }
+.itemSlot {
+  flex: 1;
+  font-size: 2rem;
+  line-height: 1;
+  padding: 16px 0;
+  border-radius: 16px;
+  border: 3px dashed #aab6c6;
+  background: #e8edf4;
+  box-shadow: none;
+  user-select: none;
+  transition: background .12s, border-color .12s;
+}
+/* 아이템이 들어있는 칸만 노란 버튼처럼 튀어나와 보이게 해서 "이건 누르는 것"임을 알린다 */
+.itemSlot.filled {
+  border: 3px solid #b3800a;
+  background: #ffb703;
+  box-shadow: 0 5px 0 #b3800a;
+}
+.itemSlot.filled:active { transform: translateY(3px); box-shadow: 0 2px 0 #b3800a; }
 
 /* ---------- 결과 화면 ---------- */
 #resultScreen { width: 100%; text-align: center; }
