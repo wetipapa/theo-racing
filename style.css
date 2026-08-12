@@ -25,6 +25,32 @@ html, body {
 h1 { font-size: 2rem; text-align: center; color: #ff5e57; margin: 10px 0; text-shadow: 2px 2px 0 #fff; }
 h2 { font-size: 1.3rem; text-align: center; margin: 14px 0 8px; color: #2b6cb0; }
 
+/* ---------- 게임 설명 화면 ---------- */
+#tutorialScreen { width: 100%; text-align: center; }
+.tutorialGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+  padding: 0 8px;
+  max-width: 640px;
+  margin: 0 auto;
+}
+.tutorialCard {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fff;
+  border: 3px solid #ddd;
+  border-radius: 14px;
+  padding: 10px 12px;
+  text-align: left;
+}
+.tutorialIcon { font-size: 1.8rem; flex: 0 0 auto; width: 36px; text-align: center; }
+.tutorialText { font-size: 0.95rem; line-height: 1.4; word-break: keep-all; overflow-wrap: normal; }
+.tutorialText b { color: #2b6cb0; }
+.tutorialText .good { color: #1a8f4c; font-weight: bold; }
+.tutorialText .bad { color: #c73e39; font-weight: bold; }
+
 /* ---------- 시작 화면 ---------- */
 #startScreen { width: 100%; text-align: center; }
 

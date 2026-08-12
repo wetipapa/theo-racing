@@ -3,15 +3,56 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Theo의 구구단 레이싱</title>
+<title>구구단 레이싱</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div id="app">
 
+  <!-- 게임 설명 화면 (맨 처음 한 번, 시작 화면에서 다시 볼 수도 있음) -->
+  <section id="tutorialScreen" class="screen">
+    <h1>🏎️ 구구단 레이싱</h1>
+    <h2>이렇게 진행돼요</h2>
+    <div class="tutorialGrid">
+      <div class="tutorialCard">
+        <div class="tutorialIcon">🏁</div>
+        <div class="tutorialText"><b>목표</b><br>트랙을 3바퀴 돌아 가장 먼저 결승선을 통과하세요. 트랙에는 곡선 구간도 있어요.</div>
+      </div>
+      <div class="tutorialCard">
+        <div class="tutorialIcon">🕹️</div>
+        <div class="tutorialText"><b>조작</b><br>← → (또는 A / D)로 좌우 이동, 스페이스바(모바일은 🎁 버튼)로 아이템 사용.</div>
+      </div>
+      <div class="tutorialCard">
+        <div class="tutorialIcon">❔</div>
+        <div class="tutorialText"><b>물음표 상자</b><br>지나가면 아이템을 하나 얻어요. 이미 아이템을 들고 있으면 새로 안 나와요.</div>
+      </div>
+      <div class="tutorialCard">
+        <div class="tutorialIcon">✖️</div>
+        <div class="tutorialText"><b>× 상자</b><br>곱셈 문제가 나와요. <span class="good">정답이면 부스터</span>로 빨라지고, <span class="bad">오답이면 크게 느려져요</span>. 정답을 잘 맞혀야 이길 수 있어요!</div>
+      </div>
+      <div class="tutorialCard">
+        <div class="tutorialIcon">🍌</div>
+        <div class="tutorialText"><b>바나나</b><br>내 뒤에 떨어뜨려서 뒤따라오는 상대를 미끄러지게 해요.</div>
+      </div>
+      <div class="tutorialCard">
+        <div class="tutorialIcon">🚀</div>
+        <div class="tutorialText"><b>로켓</b><br>가장 가까운 상대를 조준해서 날려 잠깐 멈추게 해요. 앞차가 아니어도 맞아요.</div>
+      </div>
+      <div class="tutorialCard">
+        <div class="tutorialIcon">🛡️</div>
+        <div class="tutorialText"><b>방패</b><br>충돌·바나나·로켓 공격을 한 번 막아줘요.</div>
+      </div>
+      <div class="tutorialCard">
+        <div class="tutorialIcon">🐢🔥</div>
+        <div class="tutorialText"><b>이지 / 하드 모드</b><br>이지모드는 곱셈 시간을 여유롭게, 하드모드는 빠르게 답해야 해요.</div>
+      </div>
+    </div>
+    <button id="tutorialNextBtn" class="bigBtn">다음 ➡️</button>
+  </section>
+
   <!-- 시작 화면 -->
-  <section id="startScreen" class="screen">
-    <h1>🏎️ Theo의 구구단 레이싱</h1>
+  <section id="startScreen" class="screen hidden">
+    <h1>🏎️ 구구단 레이싱</h1>
 
     <h2>1. 캐릭터를 골라주세요</h2>
     <div id="charList"></div>
@@ -23,6 +64,7 @@
     <div id="modeList"></div>
 
     <button id="startBtn" class="bigBtn">🏁 레이스 시작!</button>
+    <button id="tutorialAgainBtn" class="bigBtn secondaryBtn">❓ 게임 설명 다시보기</button>
 
     <p class="howto">
       PC: ← → 또는 A / D 키로 이동 · 스페이스바로 아이템 사용<br>

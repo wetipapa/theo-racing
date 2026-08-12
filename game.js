@@ -1,17 +1,19 @@
 "use strict";
 /* ============================================================
-   Theo의 구구단 레이싱 - 단순 2D 탑뷰 캔버스 레이싱 게임
+   구구단 레이싱 - 단순 2D 탑뷰 캔버스 레이싱 게임
    HTML/CSS/JS + Canvas만 사용, 외부 라이브러리 없음
    ============================================================ */
 
-/* ---------- 캐릭터 정의 ---------- */
+/* ---------- 캐릭터 정의 ----------
+   ※ 곱셈 실력이 순위를 가르도록, 캐릭터 간 기본 속도(speedMul)는 전부 동일하게 두고
+   코너링/충돌/아이템운/시간보너스 같은 "잔재주"만 다르게 준다. */
 const CHARACTERS = [
-  { id:"theo",   name:"Theo",   color:"#ff4d4d", desc:"특별한 약점 없이 안정적으로 달림",           speedMul:1.00, turnMul:1.00, collisionMul:1.0, itemLuck:1.0, timeBonus:0 },
-  { id:"jj",     name:"JJ",     color:"#3aa0ff", desc:"코너링과 좌우 이동이 좋음",                 speedMul:1.00, turnMul:1.35, collisionMul:1.0, itemLuck:1.0, timeBonus:0 },
-  { id:"stucob", name:"STUCOB", color:"#8a6d3b", desc:"무거워서 부딪혀도 덜 느려짐",               speedMul:1.00, turnMul:0.90, collisionMul:0.45,itemLuck:1.0, timeBonus:0 },
-  { id:"mj",     name:"MJ",     color:"#3ecf5f", desc:"속도와 조작이 균형잡힌 기본형",             speedMul:1.00, turnMul:1.00, collisionMul:1.0, itemLuck:1.0, timeBonus:0 },
-  { id:"jayce",  name:"Jayce",  color:"#a259ff", desc:"아이템 상자에서 좋은 아이템이 잘 나옴",     speedMul:1.00, turnMul:1.00, collisionMul:1.0, itemLuck:2.2, timeBonus:0 },
-  { id:"cho",    name:"Cho",    color:"#ff9f1c", desc:"곱셈 문제 제한시간이 1초 더 김",            speedMul:1.00, turnMul:1.00, collisionMul:1.0, itemLuck:1.0, timeBonus:1 },
+  { id:"blaze",  name:"블레이즈", color:"#ff4d4d", desc:"특별한 강점·약점 없는 기본형",             speedMul:1.00, turnMul:1.00, collisionMul:1.0, itemLuck:1.0, timeBonus:0 },
+  { id:"nova",   name:"노바",     color:"#3aa0ff", desc:"코너링과 좌우 이동이 좋음",                 speedMul:1.00, turnMul:1.35, collisionMul:1.0, itemLuck:1.0, timeBonus:0 },
+  { id:"bulldog",name:"불도그",   color:"#8a6d3b", desc:"무거워서 부딪혀도 덜 느려짐",               speedMul:1.00, turnMul:0.90, collisionMul:0.45,itemLuck:1.0, timeBonus:0 },
+  { id:"comet",  name:"코멧",     color:"#3ecf5f", desc:"속도와 조작이 균형잡힌 기본형",             speedMul:1.00, turnMul:1.00, collisionMul:1.0, itemLuck:1.0, timeBonus:0 },
+  { id:"lucky",  name:"럭키",     color:"#a259ff", desc:"아이템 상자에서 좋은 아이템이 잘 나옴",     speedMul:1.00, turnMul:1.00, collisionMul:1.0, itemLuck:2.2, timeBonus:0 },
+  { id:"prof",   name:"교수",     color:"#ff9f1c", desc:"곱셈 문제 제한시간이 1초 더 김",            speedMul:1.00, turnMul:1.00, collisionMul:1.0, itemLuck:1.0, timeBonus:1 },
 ];
 
 const DIFFICULTIES = [
@@ -23,41 +25,97 @@ const DIFFICULTIES = [
 ];
 
 const MODES = [
-  { id:"easy", label:"🐢 이지모드", desc:"곱셈 문제 시간제한 없음", timeLimited:false },
+  { id:"easy", label:"🐢 이지모드", desc:"곱셈 문제를 여유롭게 풀 수 있어요", timeLimited:false },
   { id:"hard", label:"🔥 하드모드", desc:"곱셈 문제 시간제한 있음 (기존 방식)", timeLimited:true },
 ];
 
-/* ---------- 트랙 수학 (직선 - 아래에서 위로) ----------
-   회전 코너 없이 완전히 곧은 세로 트랙. 진행방향이 항상 "위"로 고정되므로
-   카메라도 절대 회전하지 않고, 오른쪽/왼쪽 키가 트랙 어디서든 항상
-   화면의 오른쪽/왼쪽과 정확히 일치한다. 결승선(맨 위)을 통과하면
-   다시 출발선(맨 아래)으로 이어지며 다음 바퀴가 시작된다. */
+/* ---------- 트랙 수학 (직선 2개 + 반원 커브 2개로 이어진 폐곡선 "타원형" 트랙) ----------
+   좌/우 직선을 위/아래 반원 커브로 매끄럽게 이어붙인 완전한 폐곡선이다.
+   s=0(출발선)과 s=L(결승선)이 물리적으로 정확히 같은 지점·같은 진행방향이라서
+   한 바퀴를 다 돌아 다시 s=0으로 넘어갈 때 화면이 튀거나 끊기지 않고 매끄럽게 이어진다.
+   (예전 버전은 완전한 직선이라 결승선→출발선이 순간이동이었고, 그래서 "길이 끊긴다"는
+   문제가 있었다. 폐곡선으로 바꾸면서 커브도 자연스럽게 추가된다.)
+   카메라는 항상 "플레이어의 진행방향"이 화면 위쪽을 향하도록 회전한다(운전자 시점). */
 const TRACK = {
   cx: 320, cy: 450,
-  L: 1600,              // 트랙(한 바퀴) 길이
-  halfWidth: 48,         // 도로 절반 폭 (그리기용, 이탈 판정에도 사용)
+  straightLen: 420,   // 좌/우 직선 구간 길이
+  radius: 150,         // 위/아래 반원 커브의 반지름
+  halfWidth: 48,       // 도로 절반 폭 (그리기용, 이탈 판정에도 사용)
 };
+TRACK.halfCirc = Math.PI * TRACK.radius;              // 반원 커브 하나의 길이
+TRACK.L = TRACK.straightLen * 2 + TRACK.halfCirc * 2; // 트랙(한 바퀴) 길이
 
 function mod(x, m) { return ((x % m) + m) % m; }
 
-// s(진행거리, 0~L) -> 트랙 중심선 좌표 {x,y}. s=0이 출발선(맨 아래), s=L이 결승선(맨 위).
+// s(진행거리, 0~L) -> 트랙 중심선 좌표 {x,y}.
+// 구간 순서: [우측 직선(상행)] -> [위쪽 반원] -> [좌측 직선(하행)] -> [아래쪽 반원] -> (한 바퀴 완료, s=0과 동일 지점으로 복귀)
 function trackPos(s) {
   const T = TRACK;
   s = mod(s, T.L);
-  return { x: T.cx, y: (T.cy + T.L / 2) - s };
+  const rightX = T.cx + T.radius, leftX = T.cx - T.radius;
+  const topY = T.cy - T.straightLen / 2, bottomY = T.cy + T.straightLen / 2;
+
+  if (s < T.straightLen) {
+    return { x: rightX, y: bottomY - s };
+  }
+  s -= T.straightLen;
+  if (s < T.halfCirc) {
+    const angle = -(s / T.halfCirc) * Math.PI; // 0 -> -π (우측에서 위를 거쳐 좌측으로)
+    return { x: T.cx + T.radius * Math.cos(angle), y: topY + T.radius * Math.sin(angle) };
+  }
+  s -= T.halfCirc;
+  if (s < T.straightLen) {
+    return { x: leftX, y: topY + s };
+  }
+  s -= T.straightLen;
+  const angle = Math.PI - (s / T.halfCirc) * Math.PI; // π -> 0 (좌측에서 아래를 거쳐 우측으로)
+  return { x: T.cx + T.radius * Math.cos(angle), y: bottomY + T.radius * Math.sin(angle) };
 }
 
-// 진행방향은 항상 "위"로 고정 (직선 트랙이라 회전이 필요 없다)
-function trackFrame() {
-  return { dx: 0, dy: -1, nx: 1, ny: 0, heading: -Math.PI / 2 };
+// s -> 그 지점의 진행방향(dx,dy: 단위 탄젠트)과 좌우 오프셋용 법선(nx,ny), heading(라디안)
+// 직선/커브 어디서나 같은 공식이 적용되도록 접선벡터에서 법선을 유도한다.
+function trackFrame(s) {
+  const T = TRACK;
+  s = mod(s, T.L);
+  let dx, dy;
+
+  if (s < T.straightLen) {
+    dx = 0; dy = -1; // 우측 직선: 위로
+  } else if ((s -= T.straightLen) < T.halfCirc) {
+    const angle = -(s / T.halfCirc) * Math.PI;
+    dx = Math.sin(angle); dy = -Math.cos(angle);
+  } else if ((s -= T.halfCirc) < T.straightLen) {
+    dx = 0; dy = 1; // 좌측 직선: 아래로
+  } else {
+    s -= T.straightLen;
+    const angle = Math.PI - (s / T.halfCirc) * Math.PI;
+    dx = Math.sin(angle); dy = -Math.cos(angle);
+  }
+
+  const heading = Math.atan2(dy, dx);
+  const nx = -dy, ny = dx; // 진행방향 기준 "오른쪽"(입력의 right가 이 방향으로 이동)
+  return { dx, dy, nx, ny, heading };
 }
 
 // s(거리), offset(좌우 오프셋) -> 월드 좌표 및 heading (카메라 적용 전, 트랙 기준 좌표)
 function carWorldPos(s, offset) {
   const p = trackPos(s);
-  const f = trackFrame();
+  const f = trackFrame(s);
   return { x: p.x + f.nx * offset, y: p.y + f.ny * offset, heading: f.heading };
 }
+
+// 트랙 중심선을 따라 촘촘히 샘플링한 폐곡선 경로(도로 그리기·중앙선 그리기에 재사용)
+function buildTrackPath() {
+  const steps = 240;
+  const path = new Path2D();
+  for (let i = 0; i <= steps; i++) {
+    const p = trackPos((i / steps) * TRACK.L);
+    if (i === 0) path.moveTo(p.x, p.y); else path.lineTo(p.x, p.y);
+  }
+  path.closePath();
+  return path;
+}
+let trackPath = null;
 
 /* ---------- 게임 상수 ---------- */
 const BASE_SPEED = 62;          // 유닛/초
@@ -65,14 +123,19 @@ const STEER_SPEED = 75;         // 유닛/초 (좌우 이동 속도)
 const OFFTRACK_LIMIT = 40;      // 이 값보다 오프셋이 크면 트랙 이탈
 const OFFSET_CLAMP = 62;
 const TOTAL_LAPS = 3;
-const QUESTION_TIME = 5;
-const BOOST_DURATION = 2;   // 정답 1개당 부스터 지속시간(초)
-const BOOST_SPEED_MUL = 1.4;
+const QUESTION_TIME = 5;         // 하드모드 제한시간(초)
+const EASY_QUESTION_TIME = 18;   // 이지모드는 여유롭게 고민하되, 무한정 멈춰있지 않도록 넉넉한 상한선을 둔다
+const BOOST_DURATION = 2.4; // 정답 1개당 부스터 지속시간(초)
+const BOOST_SPEED_MUL = 1.5;
+// 오답 페널티: 정답 보상(부스터)에 밀리지 않도록 확실히 느껴지는 세기로 조정
+const WRONG_SLOW_DURATION = 2.5;
+const WRONG_SLOW_FACTOR = 0.32;
 const SHIELD_DURATION = 5;  // 방패는 사용한 순간부터 5초가 지나면 사라진다
-const ROCKET_RANGE = 600;   // 로켓이 앞차를 맞힐 수 있는 최대 거리(트랙이 넓어 여유있게 잡음)
 const ROCKET_FLIGHT_TIME = 0.35;  // 발사~명중까지 로켓이 날아가는 시간(초)
 const ROCKET_STUN_DURATION = 1.0; // 맞은 차가 멈칫하는 시간(초)
 const ROCKET_STUN_FACTOR = 0.08;  // 맞은 차의 속도 배율(거의 정지)
+// AI 속도 변주 폭을 좁혀서(예전보다 랜덤성 축소) 순위가 운보다 곱셈 실력에 더 좌우되게 한다
+const AI_SPEED_MIN = 0.92, AI_SPEED_MAX = 1.03;
 
 /* 트랙 위 상자 배치 (진행거리 비율, 좌우 오프셋) */
 const BOX_LAYOUT = [
@@ -86,7 +149,7 @@ const BOX_LAYOUT = [
 ];
 
 /* ---------- 전역 상태 ---------- */
-let selectedCharId = "mj";
+let selectedCharId = "comet";
 let selectedDiffId = "2-3";
 let selectedModeId = "hard";
 let cars = [];
@@ -215,16 +278,28 @@ function createCar(char, isPlayer, startIndex) {
     collideTimer: 0,
     mathSlowTimer: 0,
     aiPhase: makeAiPhase(startIndex),
-    aiSpeedFactor: 0.92 + Math.random() * 0.14,
+    aiSpeedFactor: AI_SPEED_MIN + Math.random() * (AI_SPEED_MAX - AI_SPEED_MIN),
     aiSpeedTimer: 1 + Math.random() * 2,
     aiItemDelay: 0,
   };
 }
 
+// 배열을 무작위로 섞는다 (Fisher-Yates) — 특정 캐릭터가 항상 같은 출발 위치를 갖지 않도록
+function shuffled(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 function startRace() {
   const diff = DIFFICULTIES.find(d => d.id === selectedDiffId);
   const playerChar = CHARACTERS.find(c => c.id === selectedCharId);
-  const aiChars = CHARACTERS.filter(c => c.id !== selectedCharId);
+  // 캐릭터 배열 순서대로 출발 위치를 고정하면 특정 캐릭터가 매번 같은 위치 이점을 갖게 되므로,
+  // AI 출발 순서를 매 레이스마다 무작위로 섞어 공평하게 만든다.
+  const aiChars = shuffled(CHARACTERS.filter(c => c.id !== selectedCharId));
 
   cars = [];
   player = createCar(playerChar, true, 0);
@@ -264,6 +339,7 @@ let currentMode = MODES.find(m => m.id === selectedModeId);
    ============================================================ */
 function showScreen(name) {
   screenName = name;
+  document.getElementById("tutorialScreen").classList.toggle("hidden", name !== "tutorial");
   document.getElementById("startScreen").classList.toggle("hidden", name !== "start");
   document.getElementById("raceScreen").classList.toggle("hidden", name !== "race");
   document.getElementById("resultScreen").classList.toggle("hidden", name !== "result");
@@ -290,11 +366,15 @@ function circDist(a, b) {
 function update(dt) {
   if (raceEnding) { render(); return; }
 
-  // 곱셈 문제 타이머 (이지모드는 시간제한이 없어 그대로 통과)
-  if (mathPopupActive && !questionAnswered && currentQuestion.timeLimited) {
+  // 곱셈 문제 타이머. 이지모드도 "시간제한 없음"이 아니라 아주 넉넉한 상한선을 두어서,
+  // 오래 고민하더라도 결국 레이싱 화면으로 돌아오도록 한다(무한정 멈춰있는 문제 방지).
+  // 하드모드만 눈에 보이는 압박 타이머 바를 채워서 보여준다.
+  if (mathPopupActive && !questionAnswered) {
     questionTimeLeft -= dt;
-    const pct = Math.max(0, questionTimeLeft / currentQuestion.timeLimit) * 100;
-    document.getElementById("mathTimerFill").style.width = pct + "%";
+    if (currentMode.timeLimited) {
+      const pct = Math.max(0, questionTimeLeft / currentQuestion.timeLimit) * 100;
+      document.getElementById("mathTimerFill").style.width = pct + "%";
+    }
     if (questionTimeLeft <= 0) resolveQuestion(null);
   }
 
@@ -348,7 +428,7 @@ function updateCar(car, dt) {
   if (!car.isPlayer) {
     car.aiSpeedTimer -= dt;
     if (car.aiSpeedTimer <= 0) {
-      car.aiSpeedFactor = 0.88 + Math.random() * 0.2;
+      car.aiSpeedFactor = AI_SPEED_MIN + Math.random() * (AI_SPEED_MAX - AI_SPEED_MIN);
       car.aiSpeedTimer = 1.5 + Math.random() * 2;
     }
   }
@@ -359,7 +439,7 @@ function updateCar(car, dt) {
   if (car.boosted) speed *= BOOST_SPEED_MUL;
   if (offTrack) speed *= 0.5;
   if (car.hitTimer > 0) speed *= car.hitSlowFactor;
-  if (car.mathSlowTimer > 0) speed *= 0.5;
+  if (car.mathSlowTimer > 0) speed *= WRONG_SLOW_FACTOR;
   if (car.collideTimer > 0) speed *= 0.6;
   speed = Math.max(speed, BASE_SPEED * 0.18);
   // 이지모드(시간제한 없음)는 문제를 푸는 동안 모든 차를 완전히 멈춰서(레이스 자체를 일시정지) 여유롭게 고민할 수 있게 한다
@@ -497,20 +577,22 @@ function useItem(car) {
     bananas.push({ s: mod(car.distance - 16, TRACK.L), offset: car.offset, active: true });
     if (car.isPlayer) { updateItemUI(); playSound("item"); }
   } else if (item === "rocket") {
+    // 앞차만 맞히던 예전 방식은 앞에 아무도 없으면 로켓을 계속 들고만 있어야 하는
+    // 문제가 있었다. 이제는 앞/뒤 상관없이 트랙에서 가장 가까운 상대를 조준해서
+    // 쏘는 즉시 무조건 발사(아이템 소비)되도록 바꿨다.
+    car.item = null;
+    if (car.isPlayer) { updateItemUI(); playSound("item"); }
+
     let target = null, best = Infinity;
     cars.forEach(other => {
       if (other === car || other.finished) return;
-      const d = other.distance - car.distance; // 누적거리이므로 그대로 비교(양수면 앞차)
-      if (d > 0 && d < best && d < ROCKET_RANGE) { best = d; target = other; }
+      const d = circDist(car.s, other.s);
+      if (d < best) { best = d; target = other; }
     });
     if (target) {
-      // 맞힐 차가 있을 때만 아이템을 소비한다 (앞에 아무도 없으면 헛되이 사라지지 않게)
-      car.item = null;
       rockets.push({ from: { x: car.worldX, y: car.worldY }, target, t: 0, duration: ROCKET_FLIGHT_TIME });
-      if (car.isPlayer) { updateItemUI(); playSound("item"); }
-    } else if (car.isPlayer) {
-      playSound("wrong"); // 맞힐 대상이 없다는 걸 알려주는 짧은 신호음(아이템은 그대로 유지)
     }
+    // 명중시킬 상대가 아예 없는 극단적인 경우(레이스 막판 혼자 남음)에는 그냥 허공으로 사라진다
   }
 }
 
@@ -557,8 +639,9 @@ function openMathPopup(car) {
   mathPopupActive = true;
   questionAnswered = false;
   currentQuestion = generateQuestion();
-  currentQuestion.timeLimited = currentMode.timeLimited;
-  currentQuestion.timeLimit = QUESTION_TIME + car.char.timeBonus;
+  // 하드모드는 짧고 빡빡한 제한시간, 이지모드는 여유롭지만 그래도 유한한 상한선을 준다.
+  const baseTime = currentMode.timeLimited ? QUESTION_TIME : EASY_QUESTION_TIME;
+  currentQuestion.timeLimit = baseTime + car.char.timeBonus;
   questionTimeLeft = currentQuestion.timeLimit;
 
   document.getElementById("mathQuestion").textContent = `${currentQuestion.text} = ?`;
@@ -568,7 +651,8 @@ function openMathPopup(car) {
     btn.disabled = false;
   });
   document.getElementById("mathResult").classList.add("hidden");
-  document.getElementById("mathTimerBar").classList.toggle("hidden", !currentQuestion.timeLimited);
+  // 압박감 있는 타이머 바는 하드모드에서만 보여준다(이지모드는 여유롭게 고민하는 느낌 유지)
+  document.getElementById("mathTimerBar").classList.toggle("hidden", !currentMode.timeLimited);
   document.getElementById("mathTimerFill").style.width = "100%";
   document.getElementById("mathPopup").classList.remove("hidden");
 }
@@ -595,7 +679,7 @@ function resolveQuestion(answer) {
   } else {
     playSound("wrong");
     resultEl.textContent = `아깝다! 정답은 ${currentQuestion.correct}`;
-    player.mathSlowTimer = 1.5;
+    player.mathSlowTimer = WRONG_SLOW_DURATION;
   }
 
   document.querySelectorAll(".answerBtn").forEach(b => b.disabled = true);
@@ -664,17 +748,19 @@ function updateItemUI() {
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-// 카메라 설정: 회전은 절대 하지 않고, 플레이어를 따라 화면만 위/아래·좌/우로
-// 이동시킨다(운전자 시점). 트랙이 완전히 곧은 세로선이라 회전이 필요 없고,
-// 그 덕분에 오른쪽/왼쪽 키가 트랙 어디서든 항상 화면 오른쪽/왼쪽과 일치한다.
-const CAMERA = { focusYRatio: 0.72, zoom: 1.35 };
+// 카메라 설정: 트랙에 커브가 생겼으므로, 플레이어의 진행방향이 항상 화면 위쪽을
+// 향하도록 카메라를 회전시킨다(운전자 시점의 회전 추적 카메라). 이렇게 하면
+// 좌/우 조작이 트랙 어디서든(직선이든 커브든) 항상 화면의 좌/우와 일치한다.
+const CAMERA = { focusYRatio: 0.68, zoom: 1.2 };
 
 function applyCameraTransform() {
   const focusX = canvas.width / 2;
   const focusY = canvas.height * CAMERA.focusYRatio;
   const centerPos = trackPos(player.s); // 오프셋 무시한 중심선 위치(좌우 흔들림 없이 부드럽게 스크롤)
+  const heading = trackFrame(player.s).heading;
 
   ctx.translate(focusX, focusY);
+  ctx.rotate(-(heading + Math.PI / 2)); // 진행방향이 화면 위쪽(−y)을 향하도록 회전
   ctx.scale(CAMERA.zoom, CAMERA.zoom);
   ctx.translate(-centerPos.x, -centerPos.y);
 }
@@ -750,37 +836,42 @@ function drawMinimap() {
 }
 
 function drawTrack() {
-  const T = TRACK;
-  const top = T.cy - T.L / 2, bottom = T.cy + T.L / 2;
+  if (!trackPath) trackPath = buildTrackPath();
 
-  // 완전히 곧은 도로 한 줄
-  ctx.fillStyle = "#8d8d95";
-  ctx.fillRect(T.cx - T.halfWidth, top, T.halfWidth * 2, T.L);
+  // 트랙 중심선을 따라 일정한 폭으로 선을 그려서 직선·커브가 하나로 매끄럽게 이어진
+  // 폐곡선 도로를 만든다(구간마다 따로 그리지 않으므로 이어붙는 자국이 없다).
+  ctx.save();
+  ctx.strokeStyle = "#8d8d95";
+  ctx.lineWidth = TRACK.halfWidth * 2;
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
+  ctx.stroke(trackPath);
 
   // 중앙 점선
   ctx.setLineDash([14, 12]);
   ctx.strokeStyle = "#ffffff";
   ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.moveTo(T.cx, bottom);
-  ctx.lineTo(T.cx, top);
-  ctx.stroke();
+  ctx.stroke(trackPath);
   ctx.setLineDash([]);
+  ctx.restore();
 }
 
 function drawFinishLine() {
   const T = TRACK;
-  const xLeft = T.cx - T.halfWidth, xRight = T.cx + T.halfWidth;
+  // 폐곡선 트랙이라 출발선=결승선이 물리적으로 같은 한 지점(s=0)뿐이다.
+  const p = trackPos(0);
+  const f = trackFrame(0);
   const h = 10, cols = 4;
-  const colW = (xRight - xLeft) / cols;
+  const colW = (T.halfWidth * 2) / cols;
 
-  // 출발선(맨 아래, s=0)과 결승선(맨 위, 한 바퀴를 다 돈 지점)에 모두 체커무늬를 그린다
-  [T.cy + T.L / 2, T.cy - T.L / 2].forEach(y => {
-    for (let c = 0; c < cols; c++) {
-      ctx.fillStyle = (c % 2 === 0) ? "#222" : "#fff";
-      ctx.fillRect(xLeft + c * colW, y - h / 2, colW, h);
-    }
-  });
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(f.heading + Math.PI / 2); // 로컬 x축을 진행방향과 수직(도로를 가로지르는 방향)으로 맞춘다
+  for (let c = 0; c < cols; c++) {
+    ctx.fillStyle = (c % 2 === 0) ? "#222" : "#fff";
+    ctx.fillRect(-T.halfWidth + c * colW, -h / 2, colW, h);
+  }
+  ctx.restore();
 }
 
 function drawBoxes() {
@@ -966,6 +1057,14 @@ document.getElementById("homeBtn").addEventListener("click", () => {
   showScreen("start");
 });
 
+document.getElementById("tutorialNextBtn").addEventListener("click", () => {
+  ensureAudio();
+  showScreen("start");
+});
+document.getElementById("tutorialAgainBtn").addEventListener("click", () => {
+  showScreen("tutorial");
+});
+
 /* ============================================================
    입력 처리 (키보드 + 모바일 버튼)
    ============================================================ */
@@ -1001,4 +1100,4 @@ document.getElementById("muteBtn").addEventListener("click", () => {
    초기화
    ============================================================ */
 buildStartScreen();
-showScreen("start");
+showScreen("tutorial"); // 처음엔 게임 설명 화면부터 보여준다
