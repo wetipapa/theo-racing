@@ -140,18 +140,28 @@ const AI_SPEED_MIN = 0.92, AI_SPEED_MAX = 1.03;
 // (예전엔 6대가 전부 같은 넓은 구간을 오가며 스쳐서, 위상이 비슷한 차끼리는 계속
 // 서로 밀어내다가 다시 모여들며 그 자리에서 버벅이는 문제가 있었다. 차선을 나누면
 // 서로 다른 차는 애초에 자주 겹치지 않아서 훨씬 자연스럽게 달린다.)
-const LANE_SPACING = 13;
-const LANE_WOBBLE = 7;
+const LANE_SPACING = 13;   // 맨 바깥 차선 ±32.5. 이탈선(±40)을 넘는 건 pushOffset()이 막는다
+const LANE_WOBBLE = 4;     // 차 폭(14)의 절반 이하로 흔들어야 옆 차선을 침범하지 않는다
+// 출발선에서는 6대가 같은 s=0에 나란히 서므로 1프레임째부터 충돌 판정이 걸린다.
+// 이 시간 동안은 차끼리 밀어내지 않아서, 출발하자마자 옆으로 밀려 손해 보는 일이 없다.
+const START_GRACE = 0.5;   // 초
 
-/* 트랙 위 상자 배치 (진행거리 비율, 좌우 오프셋) */
+/* 한 지점에 상자를 가로로 한 줄 깔아서(마리오카트처럼) 어느 차선으로 달리든 반드시 하나는
+   지나가게 한다. 예전에는 지점마다 상자가 하나뿐이라, 그 차선으로 달리지 않으면 아이템도
+   곱셈 문제도 구경 못 하고 한 바퀴가 끝나는 일이 많았다.
+   주행 가능 폭(±OFFTRACK_LIMIT = ±40)을 4칸으로 나눠서, 상자(20 x 20) 네 개가 도로를 꽉 채운다. */
+const BOX_ROW_OFFSETS = [-30, -10, 10, 30];
+const BOX_PICKUP_RANGE = 11;   // 상자 간격(20)의 절반보다 살짝 넉넉하게 — 어디로 지나도 한 칸은 잡힌다
+
+/* 트랙 위 상자 줄 배치 (진행거리 비율) */
 const BOX_LAYOUT = [
-  { type:"item", frac:0.06,  offset:-14 },
-  { type:"math", frac:0.16,  offset: 14 },
-  { type:"item", frac:0.30,  offset: 14 },
-  { type:"math", frac:0.46,  offset:-14 },
-  { type:"item", frac:0.60,  offset:-14 },
-  { type:"item", frac:0.72,  offset: 14 },
-  { type:"math", frac:0.86,  offset:-14 },
+  { type:"item", frac:0.06 },
+  { type:"math", frac:0.16 },
+  { type:"item", frac:0.30 },
+  { type:"math", frac:0.46 },
+  { type:"item", frac:0.60 },
+  { type:"item", frac:0.72 },
+  { type:"math", frac:0.86 },
 ];
 
 /* ---------- 전역 상태 ---------- */
@@ -172,6 +182,9 @@ let raceEnding = false;
 let screenName = "start"; // start | race | result
 let lastTime = 0;
 let finishOrderCounter = 0;
+let raceTime = 0;   // 레이스 시작 후 경과 시간(초) — 출발 무적 판정에 쓴다
+// 지금 서로 닿아 있는 차 쌍("i:j"). 감속 페널티를 '닿은 순간'에만 주기 위해 기억해둔다.
+let contactPairs = new Set();
 let input = { left:false, right:false };
 let muted = false;
 
@@ -309,19 +322,29 @@ function startRace() {
   // AI 출발 순서를 매 레이스마다 무작위로 섞어 공평하게 만든다.
   const aiChars = shuffled(CHARACTERS.filter(c => c.id !== selectedCharId));
 
+  // 출발 차선도 매 레이스마다 무작위로 배정한다. 예전에는 플레이어가 항상 0번(맨 바깥) 차선이라
+  // 출발선 충돌에 바깥으로 밀려 그대로 트랙을 이탈하고, 레이스 내내 감속된 채 달리는 문제가 있었다.
+  const lanes = shuffled([0, 1, 2, 3, 4, 5]);
   cars = [];
-  player = createCar(playerChar, true, 0);
+  player = createCar(playerChar, true, lanes[0]);
   cars.push(player);
-  aiChars.forEach((c, i) => cars.push(createCar(c, false, i + 1)));
+  aiChars.forEach((c, i) => cars.push(createCar(c, false, lanes[i + 1])));
 
-  boxes = BOX_LAYOUT.map(b => ({
-    type: b.type, s: b.frac * TRACK.L, offset: b.offset,
-    active: true, respawnTimer: 0,
-  }));
+  boxes = [];
+  BOX_LAYOUT.forEach(row => {
+    BOX_ROW_OFFSETS.forEach(offset => {
+      boxes.push({
+        type: row.type, s: row.frac * TRACK.L, offset,
+        active: true, respawnTimer: 0,
+      });
+    });
+  });
   bananas = [];
   rockets = [];
 
   raceStats = { total: 0, correct: 0, wrongList: [] };
+  raceTime = 0;
+  contactPairs = new Set();
   mathPopupActive = false;
   raceEnding = false;
   finishOrderCounter = 0;
@@ -386,8 +409,9 @@ function update(dt) {
     if (questionTimeLeft <= 0) resolveQuestion(null);
   }
 
+  raceTime += dt;
   cars.forEach(car => updateCar(car, dt));
-  handleCarCollisions();
+  if (raceTime > START_GRACE) handleCarCollisions();
   updateBoxRespawns(dt);
   updateRockets(dt);
 
@@ -477,7 +501,7 @@ function updateCar(car, dt) {
     if (box.type === "math" && (!car.isPlayer || mathPopupActive || car.finished)) return;
     const dS = circDist(car.s, box.s);
     const dO = Math.abs(car.offset - box.offset);
-    if (dS < 11 && dO < 30) {
+    if (dS < 11 && dO < BOX_PICKUP_RANGE) {
       if (box.type === "item") {
         if (!car.item) {
           car.item = rollItem(car.char);
@@ -533,7 +557,20 @@ function updateRockets(dt) {
   });
 }
 
+// 충돌 밀어내기 전용 오프셋 이동. 트랙 안에 있던 차가 밀려서 이탈선(±OFFTRACK_LIMIT) 밖으로
+// 나가지 않도록 막는다. 이미 밖에 나가 있는 차는 더 바깥으로 밀리지만 않게 하고, 스스로 조작해서
+// 돌아오는 건 그대로 둔다.
+function pushOffset(car, delta) {
+  const before = car.offset;
+  let next = Math.max(-OFFSET_CLAMP, Math.min(OFFSET_CLAMP, before + delta));
+  if (Math.abs(next) > OFFTRACK_LIMIT && Math.abs(next) > Math.abs(before)) {
+    next = Math.sign(next) * Math.max(OFFTRACK_LIMIT, Math.abs(before));
+  }
+  car.offset = next;
+}
+
 function handleCarCollisions() {
+  const nextContacts = new Set();
   for (let i = 0; i < cars.length; i++) {
     for (let j = i + 1; j < cars.length; j++) {
       const a = cars[i], b = cars[j];
@@ -543,27 +580,32 @@ function handleCarCollisions() {
       // 계속 서로 밀어내다 다시 모여들며 그 자리에서 버벅이는 문제가 있었는데, AI-AI 충돌을
       // 없애면 그 문제가 근본적으로 사라진다(플레이어가 낀 충돌은 게임성을 위해 그대로 둔다).
       if (!a.isPlayer && !b.isPlayer) continue;
-      if (circDist(a.s, b.s) < 18 && Math.abs(a.offset - b.offset) < 24) {
+      // 판정 크기는 drawCar()의 차 크기(길이 22 x 폭 14)에 맞춘다. 예전 폭 24는 차 폭의
+      // 1.7배라 옆 차선 차와 화면상 닿지도 않았는데 계속 충돌로 처리됐다.
+      const key = i + ":" + j;
+      if (circDist(a.s, b.s) < 18 && Math.abs(a.offset - b.offset) < 13) {
+        nextContacts.add(key);
+        const isNewContact = !contactPairs.has(key);
         const dir = a.offset <= b.offset ? -1 : 1;
 
         if (a.shielded !== b.shielded) {
           // 방패 든 차는 범퍼처럼 튼튼해서 안 밀리고, 부딪힌 상대 차만 옆으로 세게 튕겨나간다
           const bumped = a.shielded ? b : a;
           const bumpDir = a.shielded ? -dir : dir;
-          bumped.offset += bumpDir * 10;
-          bumped.offset = Math.max(-OFFSET_CLAMP, Math.min(OFFSET_CLAMP, bumped.offset));
-          bumped.collideTimer = Math.max(bumped.collideTimer, 0.4);
+          pushOffset(bumped, bumpDir * 10);
+          if (isNewContact) bumped.collideTimer = Math.max(bumped.collideTimer, 0.4);
         } else {
-          a.offset += dir * 3;
-          b.offset -= dir * 3;
-          a.offset = Math.max(-OFFSET_CLAMP, Math.min(OFFSET_CLAMP, a.offset));
-          b.offset = Math.max(-OFFSET_CLAMP, Math.min(OFFSET_CLAMP, b.offset));
-          a.collideTimer = Math.max(a.collideTimer, 0.3 * a.char.collisionMul);
-          b.collideTimer = Math.max(b.collideTimer, 0.3 * b.char.collisionMul);
+          pushOffset(a, dir * 3);
+          pushOffset(b, -dir * 3);
+          if (isNewContact) {
+            a.collideTimer = Math.max(a.collideTimer, 0.3 * a.char.collisionMul);
+            b.collideTimer = Math.max(b.collideTimer, 0.3 * b.char.collisionMul);
+          }
         }
       }
     }
   }
+  contactPairs = nextContacts;
 }
 
 /* ---------- 아이템 로직 ---------- */
