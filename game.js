@@ -331,10 +331,10 @@ function startRace() {
   aiChars.forEach((c, i) => cars.push(createCar(c, false, lanes[i + 1])));
 
   boxes = [];
-  BOX_LAYOUT.forEach(row => {
+  BOX_LAYOUT.forEach((row, rowIndex) => {
     BOX_ROW_OFFSETS.forEach(offset => {
       boxes.push({
-        type: row.type, s: row.frac * TRACK.L, offset,
+        type: row.type, row: rowIndex, s: row.frac * TRACK.L, offset,
         active: true, respawnTimer: 0,
       });
     });
@@ -510,7 +510,11 @@ function updateCar(car, dt) {
           if (!car.isPlayer) car.aiItemDelay = 0.5 + Math.random() * 1.2;
         }
       } else if (box.type === "math") {
-        box.active = false; box.respawnTimer = 5.5;
+        // 곱셈은 한 줄이 곧 문제 하나다. 맞은 상자 하나만 닫으면, 두 칸에 걸쳐 지나갔을 때
+        // 첫 문제를 푼 직후 제자리에서 옆 칸 상자에 다시 걸려 문제가 연달아 두 번 뜬다.
+        boxes.forEach(other => {
+          if (other.row === box.row) { other.active = false; other.respawnTimer = 5.5; }
+        });
         openMathPopup(car);
       }
     }
@@ -537,10 +541,15 @@ function updateCar(car, dt) {
 // 상자 재생성 타이머 (모든 상자 공통, 매 프레임 별도 처리)
 function updateBoxRespawns(dt) {
   boxes.forEach(b => {
-    if (!b.active) {
-      b.respawnTimer -= dt;
-      if (b.respawnTimer <= 0) b.active = true;
-    }
+    if (b.active) return;
+    b.respawnTimer -= dt;
+    if (b.respawnTimer > 0) return;
+    // 플레이어가 아직 그 상자 자리에 있으면 되살리지 않는다. 이지모드는 문제를 푸는 동안
+    // 차가 완전히 멈추는데(제한시간 최대 18초), 재생성 시간 5.5초가 먼저 지나면 상자가
+    // 발밑에서 되살아나 문제가 곧바로 또 뜬다.
+    if (player && !player.finished &&
+        circDist(player.s, b.s) < 11 && Math.abs(player.offset - b.offset) < BOX_PICKUP_RANGE) return;
+    b.active = true;
   });
   // 밟힌 바나나는 active=false로 남기고 매 레이스 시작 시 초기화(startRace)되므로 별도 정리 불필요
 }
