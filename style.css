@@ -25,8 +25,42 @@ html, body {
 h1 { font-size: 2rem; text-align: center; color: #ff5e57; margin: 10px 0; text-shadow: 2px 2px 0 #fff; }
 h2 { font-size: 1.3rem; text-align: center; margin: 14px 0 8px; color: #2b6cb0; }
 
-/* ---------- 게임 설명 화면 ---------- */
-#tutorialScreen { width: 100%; text-align: center; }
+/* ---------- 게임 방법(모달) ---------- */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 30, 50, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+  z-index: 50;
+}
+.modalCard {
+  position: relative;
+  background: #fff;
+  border-radius: 20px;
+  max-width: 640px;
+  width: 100%;
+  max-height: 88vh;
+  overflow-y: auto;
+  padding: 20px 16px 16px;
+  text-align: center;
+}
+.modalCard h2 { margin-top: 0; }
+.modalCloseBtn {
+  position: absolute;
+  top: 8px; right: 8px;
+  width: 38px; height: 38px;
+  font-size: 1.2rem;
+  border: none;
+  border-radius: 50%;
+  background: #eee;
+  color: #444;
+  cursor: pointer;
+}
+.modalCloseBtn:active { transform: scale(0.94); }
+
 .tutorialGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -53,6 +87,70 @@ h2 { font-size: 1.3rem; text-align: center; margin: 14px 0 8px; color: #2b6cb0; 
 
 /* ---------- 시작 화면 ---------- */
 #startScreen { width: 100%; text-align: center; }
+
+.tagline { font-size: 1.05rem; color: #555; margin: 0 0 6px; }
+
+/* "바로 시작"이 첫 화면에서 가장 강한 CTA가 되도록, 다른 버튼보다 크게 만든다 */
+.startBtn { font-size: 1.6rem; padding: 18px 40px; margin: 10px 8px; }
+
+/* 현재 설정 요약 + 설정 바꾸기 토글을 겸하는 버튼. 평소엔 이 한 줄만 보이고,
+   눌러야만 아래 설정 선택 영역(#settingsPanel)이 펼쳐지는 단일 아코디언이다. */
+.settingsSummary {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  margin: 4px auto 10px;
+  padding: 10px 16px;
+  border: 2px solid #ffd166;
+  border-radius: 16px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 0.95rem;
+  color: #2b2b2b;
+}
+.settingsSummary:active { transform: scale(0.98); }
+#settingsSummaryText { display: block; font-weight: bold; word-break: keep-all; overflow-wrap: normal; }
+.settingsSummaryEdit { display: block; margin-top: 4px; font-size: 0.85rem; color: #2b6cb0; }
+.dot {
+  display: inline-block;
+  width: 0.8em; height: 0.8em;
+  border-radius: 50%;
+  border: 2px solid #333;
+  vertical-align: -0.05em;
+}
+
+/* 설정 바꾸기를 눌렀을 때만 펼쳐지는 영역. 트랙·캐릭터·구구단·모드를 한 영역 안에 모아둔다 */
+.settingsPanel {
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto 10px;
+  padding: 10px 8px 4px;
+  border-top: 3px dashed #cfd8e3;
+}
+.settingsGroup { margin-bottom: 14px; }
+.settingsGroup h3 { font-size: 1.05rem; margin: 0 0 8px; color: #2b6cb0; }
+.settingsHint {
+  font-size: 0.85rem;
+  color: #555;
+  margin: 6px 0 0;
+  word-break: keep-all;
+  overflow-wrap: normal;
+}
+
+/* 게임 방법: 눈에 덜 띄는 보조 버튼(첫 화면의 핵심은 "바로 시작") */
+.linkBtn {
+  display: inline-block;
+  margin: 6px 8px 0;
+  padding: 8px 18px;
+  border: 2px solid #b9c3d1;
+  border-radius: 14px;
+  background: #fff;
+  color: #2b6cb0;
+  font-size: 0.95rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+.linkBtn:active { transform: scale(0.97); }
 
 #mapList, #charList, #diffList, #modeList {
   display: grid;
@@ -100,8 +198,6 @@ h2 { font-size: 1.3rem; text-align: center; margin: 14px 0 8px; color: #2b6cb0; 
 .bigBtn:active { transform: translateY(3px); box-shadow: 0 2px 0 #c73e39; }
 .secondaryBtn { background: #4c7fe0; box-shadow: 0 5px 0 #33579c; }
 .secondaryBtn:active { box-shadow: 0 2px 0 #33579c; }
-
-.howto { font-size: 1rem; line-height: 1.7; margin: 14px auto; max-width: 560px; color: #333; }
 
 .blogFooter { font-size: 0.9rem; margin: 18px auto 4px; color: #777; }
 .blogFooter a { color: #2b6cb0; font-weight: bold; text-decoration: none; }
@@ -184,7 +280,8 @@ h2 { font-size: 1.3rem; text-align: center; margin: 14px 0 8px; color: #2b6cb0; 
   pointer-events: none;
 }
 
-/* 우주 정거장에서 낙하했을 때 잠깐 뜨는 안내 배너 */
+/* 우주 정거장에서 낙하했을 때 잠깐 뜨는 안내 배너
+   (첫 낙하 때만 체크포인트 설명이 붙어 길어지므로 nowrap 대신 가운데 정렬로 줄바꿈을 허용한다) */
 #fallBanner {
   position: absolute;
   top: 30%;
@@ -197,7 +294,25 @@ h2 { font-size: 1.3rem; text-align: center; margin: 14px 0 8px; color: #2b6cb0; 
   padding: 12px 22px;
   border-radius: 20px;
   pointer-events: none;
-  white-space: nowrap;
+  max-width: 88%;
+  text-align: center;
+}
+
+/* 처음 아이템을 얻었을 때처럼, 게임 중 한 번만 짧게 뜨는 안내 배너 */
+#hintBanner {
+  position: absolute;
+  top: 8%;
+  left: 50%;
+  transform: translate(-50%, 0);
+  font-size: 1rem;
+  font-weight: bold;
+  color: #2b2b2b;
+  background: rgba(255, 209, 102, 0.95);
+  padding: 6px 16px;
+  border-radius: 16px;
+  pointer-events: none;
+  max-width: 88%;
+  text-align: center;
 }
 
 /* 번개 아이템을 사용했을 때 화면이 살짝 번쩍이는 연출 */
@@ -240,6 +355,14 @@ h2 { font-size: 1.3rem; text-align: center; margin: 14px 0 8px; color: #2b6cb0; 
   font-weight: bold;
   color: #fff;
   margin-bottom: 18px;
+  text-align: center;
+}
+/* 처음 곱셈 문제를 만났을 때만 한 번 보이는 짧은 안내 */
+#mathHint {
+  font-size: 0.95rem;
+  font-weight: bold;
+  color: #ffe89a;
+  margin: -10px 0 14px;
   text-align: center;
 }
 #mathAnswers { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
@@ -323,9 +446,19 @@ h2 { font-size: 1.3rem; text-align: center; margin: 14px 0 8px; color: #2b6cb0; 
 }
 
 @media (max-width: 560px) {
-  h1 { font-size: 1.5rem; }
+  h1 { font-size: 1.5rem; margin: 8px 0 4px; }
+  .tagline { font-size: 0.95rem; margin-bottom: 4px; }
+  .startBtn { font-size: 1.35rem; padding: 15px 30px; margin: 8px 8px 4px; }
   .charCard, .diffCard { padding: 8px; }
   #mathQuestion { font-size: 2rem; }
   .answerBtn { font-size: 1.4rem; padding: 12px 18px; min-width: 70px; }
   .hudBox { font-size: 0.85rem; padding: 5px 8px; }
+}
+
+/* 화면이 낮은 기기(가로 모드 등)에서도 "바로 시작" 버튼이 스크롤 없이 보이도록 여백을 더 줄인다 */
+@media (max-height: 700px) {
+  #app { padding-top: 4px; }
+  h1 { margin: 4px 0 2px; }
+  .tagline { margin-bottom: 4px; }
+  .startBtn { padding: 12px 28px; margin: 6px 8px 4px; }
 }

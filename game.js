@@ -25,8 +25,8 @@ const DIFFICULTIES = [
 ];
 
 const MODES = [
-  { id:"easy", label:"🐢 이지모드", desc:"곱셈 문제를 여유롭게 풀 수 있어요", timeLimited:false },
-  { id:"hard", label:"🔥 하드모드", desc:"곱셈 문제 시간제한 있음 (기존 방식)", timeLimited:true },
+  { id:"easy", label:"🐢 이지모드", short:"🐢 이지", desc:"곱셈 문제를 여유롭게 풀 수 있어요", timeLimited:false },
+  { id:"hard", label:"🔥 하드모드", short:"🔥 하드", desc:"곱셈 문제 시간제한 있음 (기존 방식)", timeLimited:true },
 ];
 
 /* ---------- 맵(트랙) 정의 ----------
@@ -321,10 +321,52 @@ const START_GRACE = 0.5;   // 초
 const BOX_PICKUP_RANGE = 11;   // 상자 간격(20)의 절반보다 살짝 넉넉하게 — 어디로 지나도 한 칸은 잡힌다
 
 /* ---------- 전역 상태 ---------- */
+// 첫 방문 기본값: 햇살 공원 · 코멧 · 2·3단 · 이지모드 (한 번만 눌러도 바로 시작할 수 있게)
 let selectedCharId = "comet";
 let selectedDiffId = "2-3";
-let selectedModeId = "hard";
+let selectedModeId = "easy";
 let selectedMapId = "sunny";
+
+/* ---------- 마지막 설정 저장(localStorage) ----------
+   저장이 실패하거나 값이 이상해도 게임엔 영향 없게, 항상 try/catch로 감싸고
+   읽어온 값은 실제 목록에 존재하는 id인지 검증한 뒤에만 반영한다. */
+const SETTINGS_STORAGE_KEY = "wetipapaMultipleRace.settings.v1";
+
+function loadSavedSettings() {
+  try {
+    const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
+    if (!raw) return;
+    const saved = JSON.parse(raw);
+    if (saved && MAPS.some(m => m.id === saved.mapId)) selectedMapId = saved.mapId;
+    if (saved && CHARACTERS.some(c => c.id === saved.charId)) selectedCharId = saved.charId;
+    if (saved && DIFFICULTIES.some(d => d.id === saved.diffId)) selectedDiffId = saved.diffId;
+    if (saved && MODES.some(m => m.id === saved.modeId)) selectedModeId = saved.modeId;
+  } catch (e) { /* localStorage를 못 쓰는 환경이면 그냥 기본값으로 진행 */ }
+}
+
+function saveSettings() {
+  try {
+    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify({
+      mapId: selectedMapId, charId: selectedCharId, diffId: selectedDiffId, modeId: selectedModeId,
+    }));
+  } catch (e) { /* 저장이 안 되도 플레이에는 지장 없게 무시 */ }
+}
+
+/* ---------- 플레이 중 첫 안내(한 번만) ----------
+   튜토리얼을 강제로 보여주지 않는 대신, 처음 겪는 순간에만 짧게 알려준다.
+   한 번 본 안내는 localStorage에 표시해두고 다시는 띄우지 않는다. */
+const HINTS_STORAGE_KEY = "wetipapaMultipleRace.hints.v1";
+let seenHints = { item:false, math:false, fall:false };
+(function loadSeenHints() {
+  try {
+    const raw = localStorage.getItem(HINTS_STORAGE_KEY);
+    if (raw) Object.assign(seenHints, JSON.parse(raw));
+  } catch (e) { /* 무시 */ }
+})();
+function markHintSeen(key) {
+  seenHints[key] = true;
+  try { localStorage.setItem(HINTS_STORAGE_KEY, JSON.stringify(seenHints)); } catch (e) { /* 무시 */ }
+}
 let cars = [];
 let boxes = [];
 let bananas = [];
@@ -392,6 +434,24 @@ const charListEl = document.getElementById("charList");
 const diffListEl = document.getElementById("diffList");
 const modeListEl = document.getElementById("modeList");
 
+// 캐릭터 카드는 6명 설명을 한꺼번에 늘어놓지 않고, 선택된 캐릭터 하나의 특징만
+// charDescLine 한 줄에 보여준다(모바일에서 설정 영역이 과도하게 길어지지 않게).
+function updateCharDescLine() {
+  const ch = CHARACTERS.find(c => c.id === selectedCharId);
+  const line = document.getElementById("charDescLine");
+  if (ch && line) line.textContent = ch.desc;
+}
+
+// 상단 "바로 시작" 버튼 옆 요약 줄: 현재 선택된 트랙·캐릭터·구구단·모드를 한눈에 보여준다.
+function updateSettingsSummary() {
+  const map = MAPS.find(m => m.id === selectedMapId) || MAPS[0];
+  const ch = CHARACTERS.find(c => c.id === selectedCharId) || CHARACTERS[0];
+  const diff = DIFFICULTIES.find(d => d.id === selectedDiffId) || DIFFICULTIES[0];
+  const mode = MODES.find(m => m.id === selectedModeId) || MODES[0];
+  document.getElementById("settingsSummaryText").innerHTML =
+    `${map.emoji} ${map.name} · <span class="dot" style="background:${ch.color}"></span> ${ch.name} · ${diff.label} · ${mode.short}`;
+}
+
 function buildStartScreen() {
   MAPS.forEach(m => {
     const card = document.createElement("div");
@@ -404,6 +464,8 @@ function buildStartScreen() {
       selectedMapId = m.id;
       [...mapListEl.children].forEach(c => c.classList.remove("selected"));
       card.classList.add("selected");
+      updateSettingsSummary();
+      saveSettings();
     });
     mapListEl.appendChild(card);
   });
@@ -414,15 +476,18 @@ function buildStartScreen() {
     card.dataset.id = ch.id;
     card.innerHTML =
       `<div class="charSwatch" style="background:${ch.color}"></div>` +
-      `<div class="charName">${ch.name}</div>` +
-      `<div class="charDesc">${ch.desc}</div>`;
+      `<div class="charName">${ch.name}</div>`;
     card.addEventListener("click", () => {
       selectedCharId = ch.id;
       [...charListEl.children].forEach(c => c.classList.remove("selected"));
       card.classList.add("selected");
+      updateCharDescLine();
+      updateSettingsSummary();
+      saveSettings();
     });
     charListEl.appendChild(card);
   });
+  updateCharDescLine();
 
   DIFFICULTIES.forEach(d => {
     const card = document.createElement("div");
@@ -433,6 +498,8 @@ function buildStartScreen() {
       selectedDiffId = d.id;
       [...diffListEl.children].forEach(c => c.classList.remove("selected"));
       card.classList.add("selected");
+      updateSettingsSummary();
+      saveSettings();
     });
     diffListEl.appendChild(card);
   });
@@ -446,14 +513,37 @@ function buildStartScreen() {
       selectedModeId = m.id;
       [...modeListEl.children].forEach(c => c.classList.remove("selected"));
       card.classList.add("selected");
+      updateSettingsSummary();
+      saveSettings();
     });
     modeListEl.appendChild(card);
   });
 
-  document.getElementById("startBtn").addEventListener("click", () => {
-    ensureAudio();
-    startRace();
-  });
+  updateSettingsSummary();
+
+  const startFromScreen = () => { ensureAudio(); startRace(); };
+  document.getElementById("startBtn").addEventListener("click", startFromScreen);
+  document.getElementById("startBtnInPanel").addEventListener("click", startFromScreen);
+
+  // "설정 바꾸기": 평소엔 요약 한 줄만 보이고, 누르면 아래에 선택 영역이 펼쳐진다(아코디언 1개).
+  const settingsSummaryBtn = document.getElementById("settingsSummary");
+  const settingsPanel = document.getElementById("settingsPanel");
+  settingsSummaryBtn.addEventListener("click", () => setSettingsPanelOpen(settingsPanel.classList.contains("hidden")));
+
+  // "게임 방법": 누를 때만 열리는 오버레이. 안 읽어도 플레이에는 문제 없다.
+  const howtoModal = document.getElementById("howtoModal");
+  document.getElementById("howtoBtn").addEventListener("click", () => howtoModal.classList.remove("hidden"));
+  document.getElementById("howtoCloseBtn").addEventListener("click", () => howtoModal.classList.add("hidden"));
+  document.getElementById("howtoCloseBtn2").addEventListener("click", () => howtoModal.classList.add("hidden"));
+  howtoModal.addEventListener("click", e => { if (e.target === howtoModal) howtoModal.classList.add("hidden"); });
+}
+
+function setSettingsPanelOpen(open) {
+  const panel = document.getElementById("settingsPanel");
+  const btn = document.getElementById("settingsSummary");
+  panel.classList.toggle("hidden", !open);
+  btn.setAttribute("aria-expanded", String(open));
+  btn.querySelector(".settingsSummaryEdit").textContent = open ? "⚙️ 설정 접기 ▴" : "⚙️ 설정 바꾸기 ▾";
 }
 
 /* ============================================================
@@ -559,6 +649,7 @@ function startRace() {
   document.getElementById("slowBanner").classList.add("hidden");
   document.getElementById("finishBanner").classList.add("hidden");
   document.getElementById("fallBanner").classList.add("hidden");
+  document.getElementById("hintBanner").classList.add("hidden");
   hideMathPopup(true);
 
   showScreen("race");
@@ -581,7 +672,6 @@ let currentMode = MODES.find(m => m.id === selectedModeId);
    ============================================================ */
 function showScreen(name) {
   screenName = name;
-  document.getElementById("tutorialScreen").classList.toggle("hidden", name !== "tutorial");
   document.getElementById("startScreen").classList.toggle("hidden", name !== "start");
   document.getElementById("raceScreen").classList.toggle("hidden", name !== "race");
   document.getElementById("resultScreen").classList.toggle("hidden", name !== "result");
@@ -758,7 +848,10 @@ function updateCar(car, dt) {
         if (car.items.length < capacity) {
           car.items.push(rollItem(car));
           box.active = false; box.respawnTimer = 4.5;
-          if (car.isPlayer) { playSound("item"); updateItemUI(); }
+          if (car.isPlayer) {
+            playSound("item"); updateItemUI();
+            if (!seenHints.item) { showHintBanner("아래 아이템 칸을 눌러서 써봐요! 👇"); markHintSeen("item"); }
+          }
           if (!car.isPlayer) car.aiItemDelay = 0.5 + Math.random() * 1.2;
         }
       } else if (box.type === "math") {
@@ -951,11 +1044,24 @@ function triggerFall(car) {
 
   if (car.isPlayer) {
     playSound("wrong");
+    const isFirstFall = !seenHints.fall;
+    if (isFirstFall) markHintSeen("fall");
     const banner = document.getElementById("fallBanner");
-    banner.textContent = "앗, 우주로 빠졌다! 🌌";
+    banner.textContent = isFirstFall
+      ? "앗, 우주로 빠졌다! 체크포인트에서 다시 출발해요 🌌"
+      : "앗, 우주로 빠졌다! 🌌";
     banner.classList.remove("hidden");
-    setTimeout(() => banner.classList.add("hidden"), 1100);
+    setTimeout(() => banner.classList.add("hidden"), isFirstFall ? 1700 : 1100);
   }
+}
+
+// 화면 위쪽에 잠깐 떴다 사라지는 짧은 안내 배너(처음 겪는 순간에만 한 번 씀)
+function showHintBanner(text) {
+  const el = document.getElementById("hintBanner");
+  el.textContent = text;
+  el.classList.remove("hidden");
+  clearTimeout(showHintBanner._timer);
+  showHintBanner._timer = setTimeout(() => el.classList.add("hidden"), 2200);
 }
 
 /* ---------- AI 회피(낙하 구간 / 회전 막대사탕) ----------
@@ -1156,6 +1262,17 @@ function openMathPopup(car) {
   // 압박감 있는 타이머 바는 하드모드에서만 보여준다(이지모드는 여유롭게 고민하는 느낌 유지)
   document.getElementById("mathTimerBar").classList.toggle("hidden", !currentMode.timeLimited);
   document.getElementById("mathTimerFill").style.width = "100%";
+
+  // 처음 곱셈 문제를 만났을 때만, 맞히고 틀리면 무슨 일이 생기는지 한 줄로 짧게 알려준다.
+  const mathHint = document.getElementById("mathHint");
+  if (!seenHints.math) {
+    mathHint.textContent = "정답이면 부스터, 틀리면 느려져요!";
+    mathHint.classList.remove("hidden");
+    markHintSeen("math");
+  } else {
+    mathHint.classList.add("hidden");
+  }
+
   document.getElementById("mathPopup").classList.remove("hidden");
 }
 
@@ -1744,26 +1861,32 @@ function finishRace() {
   }
 }
 
+// 같은 설정으로 곧바로 다시 하기 — 마지막으로 고른 설정을 그대로 재사용한다.
 document.getElementById("retryBtn").addEventListener("click", () => {
   ensureAudio();
   startRace();
 });
+// 설정을 바꾸고 다시 하기 — 처음 화면으로 돌아가되 설정 영역을 바로 펼쳐준다.
+document.getElementById("retrySettingsBtn").addEventListener("click", () => {
+  showScreen("start");
+  setSettingsPanelOpen(true);
+  document.getElementById("settingsPanel").scrollIntoView({ block: "start" });
+});
+// 처음 화면으로 — 마지막 설정과 요약은 그대로 유지된 채 첫 화면으로 돌아간다.
 document.getElementById("homeBtn").addEventListener("click", () => {
   showScreen("start");
-});
-
-document.getElementById("tutorialNextBtn").addEventListener("click", () => {
-  ensureAudio();
-  showScreen("start");
-});
-document.getElementById("tutorialAgainBtn").addEventListener("click", () => {
-  showScreen("tutorial");
+  setSettingsPanelOpen(false);
 });
 
 /* ============================================================
    입력 처리 (키보드 + 모바일 버튼)
    ============================================================ */
 window.addEventListener("keydown", e => {
+  // 게임 방법 오버레이가 열려있을 때는 Esc로 바로 닫을 수 있게 한다.
+  if (e.key === "Escape") {
+    document.getElementById("howtoModal").classList.add("hidden");
+    return;
+  }
   ensureAudio();
   if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") input.left = true;
   if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") input.right = true;
@@ -1800,5 +1923,6 @@ document.getElementById("muteBtn").addEventListener("click", () => {
 /* ============================================================
    초기화
    ============================================================ */
+loadSavedSettings(); // 마지막으로 저장된 설정이 있으면 불러오고, 없거나 잘못됐으면 기본값 유지
 buildStartScreen();
-showScreen("tutorial"); // 처음엔 게임 설명 화면부터 보여준다
+showScreen("start"); // 설명 화면을 거치지 않고 바로 시작 화면부터 보여준다
