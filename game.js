@@ -585,6 +585,9 @@ function showScreen(name) {
   document.getElementById("startScreen").classList.toggle("hidden", name !== "start");
   document.getElementById("raceScreen").classList.toggle("hidden", name !== "race");
   document.getElementById("resultScreen").classList.toggle("hidden", name !== "result");
+  // 화면을 바꿔도 스크롤 위치는 그대로 남아있어서, 이전 화면에서 아래로 스크롤한 채
+  // 넘어오면 새 화면이 중간부터 보이는 문제가 있었다. 화면이 바뀔 때마다 맨 위로 되돌린다.
+  window.scrollTo(0, 0);
 }
 
 /* ============================================================
