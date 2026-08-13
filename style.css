@@ -54,7 +54,7 @@ h2 { font-size: 1.3rem; text-align: center; margin: 14px 0 8px; color: #2b6cb0; 
 /* ---------- 시작 화면 ---------- */
 #startScreen { width: 100%; text-align: center; }
 
-#charList, #diffList, #modeList {
+#mapList, #charList, #diffList, #modeList {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 10px;
@@ -183,6 +183,33 @@ h2 { font-size: 1.3rem; text-align: center; margin: 14px 0 8px; color: #2b6cb0; 
   border-radius: 20px;
   pointer-events: none;
 }
+
+/* 우주 정거장에서 낙하했을 때 잠깐 뜨는 안내 배너 */
+#fallBanner {
+  position: absolute;
+  top: 30%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #fff;
+  background: rgba(60, 40, 110, 0.92);
+  padding: 12px 22px;
+  border-radius: 20px;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* 번개 아이템을 사용했을 때 화면이 살짝 번쩍이는 연출 */
+#screenFlash {
+  position: absolute;
+  inset: 0;
+  background: #fff9c4;
+  opacity: 0;
+  pointer-events: none;
+}
+#screenFlash.flashAnim { animation: flashPulse 0.35s ease-out; }
+@keyframes flashPulse { 0% { opacity: 0.85; } 100% { opacity: 0; } }
 
 #mathPopup {
   position: absolute;

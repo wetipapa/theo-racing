@@ -29,23 +29,170 @@ const MODES = [
   { id:"hard", label:"🔥 하드모드", desc:"곱셈 문제 시간제한 있음 (기존 방식)", timeLimited:true },
 ];
 
+/* ---------- 맵(트랙) 정의 ----------
+   맵마다 트랙 크기(track), 배경 테마(theme), 배경 장식(decorations),
+   장애물(obstacles: 사탕 마을 전용), 낙하 구간(hazards: 우주 정거장 전용),
+   안전 체크포인트(checkpoints: 우주 정거장 전용), 상자 배치(boxLayout)를 따로 갖는다.
+   boxLayout은 기존과 동일하게 "이 지점에 상자 한 줄" 형태(type, frac)만 적어두면,
+   실제 상자 4개(TRACK.boxRowOffsets)는 트랙 폭에 맞춰 자동으로 깔린다. 맵을 새로 추가할 때도
+   이 배열에 항목 하나만 늘리면 된다(별도 클래스 불필요). */
+const MAPS = [
+  {
+    id: "sunny", name: "햇살 공원", diffLabel: "쉬움", emoji: "🌻",
+    track: { straightLen: 420, radius: 150, halfWidth: 48, wave: null },
+    theme: { bg: "#7ec850", road: "#8d8d95", wrapBorder: "#4a934a" },
+    boxLayout: [
+      { type:"item", frac:0.06 },
+      { type:"math", frac:0.16 },
+      { type:"item", frac:0.30 },
+      { type:"math", frac:0.46 },
+      { type:"item", frac:0.60 },
+      { type:"item", frac:0.72 },
+      { type:"math", frac:0.86 },
+    ],
+    decorations: [
+      { frac:0.02, offset:-100, emoji:"🌳" },
+      { frac:0.02, offset: 100, emoji:"🌳" },
+      { frac:0.20, offset: -95, emoji:"🌸" },
+      { frac:0.20, offset:  95, emoji:"🌼" },
+      { frac:0.40, offset:-100, emoji:"🌳" },
+      { frac:0.40, offset: 100, emoji:"🐰" },
+      { frac:0.55, offset: -95, emoji:"🐻" },
+      { frac:0.55, offset:  95, emoji:"🌷" },
+      { frac:0.75, offset:-100, emoji:"🌳" },
+      { frac:0.75, offset: 100, emoji:"🦊" },
+      { frac:0.92, offset: -90, emoji:"🌼" },
+      { frac:0.92, offset:  90, emoji:"🌳" },
+      { pond:true, x:320, y:450 },
+      { frac:0.995, offset: -72, emoji:"🚩" },
+      { frac:0.005, offset:  72, emoji:"🚩" },
+    ],
+  },
+  {
+    id: "candy", name: "사탕 마을", diffLabel: "보통", emoji: "🍭",
+    track: { straightLen: 400, radius: 140, halfWidth: 40, wave: { amplitude: 24, k: 1 } },
+    theme: { bg: "#ffe1f0", road: "#c9a0dc", wrapBorder: "#d15fb0" },
+    boxLayout: [
+      { type:"item", frac:0.06 },
+      { type:"math", frac:0.14 },
+      { type:"item", frac:0.24 },
+      { type:"math", frac:0.36 },
+      { type:"item", frac:0.50 },
+      { type:"item", frac:0.62 },
+      { type:"math", frac:0.90 },
+    ],
+    obstacles: {
+      syrups: [
+        { frac:0.18, offset:-10 },
+        { frac:0.42, offset: 10 },
+        { frac:0.68, offset:-10 },
+      ],
+      lollipops: [
+        { frac:0.30, offset:  8 },
+        { frac:0.80, offset: -8 },
+      ],
+    },
+    decorations: [
+      { frac:0.03, offset:-90, emoji:"🍩" },
+      { frac:0.10, offset: 88, emoji:"🍭" },
+      { frac:0.22, offset:-85, emoji:"🍬" },
+      { frac:0.35, offset: 88, emoji:"🍩" },
+      { frac:0.48, offset:-88, emoji:"🍫" },
+      { frac:0.58, offset: 85, emoji:"🍬" },
+      { frac:0.72, offset:-88, emoji:"🍭" },
+      { frac:0.86, offset: 85, emoji:"🍩" },
+      { frac:0.95, offset:-85, emoji:"🍬" },
+    ],
+  },
+  {
+    id: "space", name: "우주 정거장", diffLabel: "어려움", emoji: "🚀",
+    track: { straightLen: 400, radius: 95, halfWidth: 44, wave: null },
+    theme: { bg: "#0b1030", road: "#4a4a6a", wrapBorder: "#2a2f5c" },
+    boxLayout: [
+      { type:"item", frac:0.06 },
+      { type:"math", frac:0.16 },
+      { type:"item", frac:0.28 },
+      { type:"math", frac:0.40 },
+      { type:"item", frac:0.50 },
+      { type:"item", frac:0.74 },
+      { type:"math", frac:0.96 },
+    ],
+    hazards: [
+      { fracStart:0.60, fracEnd:0.665, safeHalf:16, kind:"bridge" },
+      { fracStart:0.84, fracEnd:0.90,  safeHalf:20, kind:"jump" },
+    ],
+    checkpoints: [0, 0.30, 0.55, 0.78],
+    decorations: [
+      { frac:0.05, offset:-100, emoji:"⭐" },
+      { frac:0.08, offset: 100, emoji:"🪐" },
+      { frac:0.18, offset: -95, emoji:"⭐" },
+      { frac:0.25, offset:  95, emoji:"✨" },
+      { frac:0.33, offset:-100, emoji:"🌟" },
+      { frac:0.45, offset:  95, emoji:"⭐" },
+      { frac:0.50, offset: -90, emoji:"🪐" },
+      { frac:0.72, offset: 100, emoji:"⭐" },
+      { frac:0.78, offset: -95, emoji:"✨" },
+      { frac:0.92, offset:  90, emoji:"🌟" },
+      { frac:0.97, offset:-100, emoji:"⭐" },
+    ],
+  },
+];
+
 /* ---------- 트랙 수학 (직선 2개 + 반원 커브 2개로 이어진 폐곡선 "타원형" 트랙) ----------
    좌/우 직선을 위/아래 반원 커브로 매끄럽게 이어붙인 완전한 폐곡선이다.
    s=0(출발선)과 s=L(결승선)이 물리적으로 정확히 같은 지점·같은 진행방향이라서
    한 바퀴를 다 돌아 다시 s=0으로 넘어갈 때 화면이 튀거나 끊기지 않고 매끄럽게 이어진다.
    (예전 버전은 완전한 직선이라 결승선→출발선이 순간이동이었고, 그래서 "길이 끊긴다"는
    문제가 있었다. 폐곡선으로 바꾸면서 커브도 자연스럽게 추가된다.)
-   카메라는 항상 "플레이어의 진행방향"이 화면 위쪽을 향하도록 회전한다(운전자 시점). */
-const TRACK = {
-  cx: 320, cy: 450,
-  straightLen: 420,   // 좌/우 직선 구간 길이
-  radius: 150,         // 위/아래 반원 커브의 반지름
-  halfWidth: 48,       // 도로 절반 폭 (그리기용, 이탈 판정에도 사용)
-};
-TRACK.halfCirc = Math.PI * TRACK.radius;              // 반원 커브 하나의 길이
-TRACK.L = TRACK.straightLen * 2 + TRACK.halfCirc * 2; // 트랙(한 바퀴) 길이
+   카메라는 항상 "플레이어의 진행방향"이 화면 위쪽을 향하도록 회전한다(운전자 시점).
+
+   맵마다 트랙 크기가 다르므로 TRACK은 레이스 시작 시 선택한 맵으로 새로 만든다(applyMap).
+   사탕 마을은 직선 구간에 좌우로 살짝 흔들리는 "물결(wave)"을 더해서 S자 커브를 만든다.
+   물결 함수는 직선의 양 끝(u=0, u=straightLen)에서 값과 기울기가 모두 0이 되도록 설계해서
+   반원 커브와 이어지는 지점에서 위치·진행방향이 매끄럽게 붙는다(카메라가 갑자기 꺾이지 않음). */
+let TRACK = null;
+let currentMap = MAPS[0];
+let trackPath = null;
+
+// 기존 햇살 공원 수치(이탈선 40 / 클램프 62 / 상자열 -30,-10,10,30, 전부 halfWidth 48 기준)를
+// 비율로 남겨서, 맵마다 도로 폭이 달라도 같은 "느낌"으로 자동 스케일되게 한다.
+const OFFTRACK_RATIO = 40 / 48;
+const OFFSET_CLAMP_RATIO = 62 / 48;
+const BOX_ROW_RATIOS = [-30 / 48, -10 / 48, 10 / 48, 30 / 48];
+
+function applyMap(map) {
+  currentMap = map;
+  TRACK = {
+    cx: 320, cy: 450,
+    straightLen: map.track.straightLen,
+    radius: map.track.radius,
+    halfWidth: map.track.halfWidth,
+    wave: map.track.wave || null,
+  };
+  TRACK.halfCirc = Math.PI * TRACK.radius;
+  TRACK.L = TRACK.straightLen * 2 + TRACK.halfCirc * 2;
+  TRACK.offTrackLimit = TRACK.halfWidth * OFFTRACK_RATIO;
+  TRACK.offsetClamp = TRACK.halfWidth * OFFSET_CLAMP_RATIO;
+  TRACK.boxRowOffsets = BOX_ROW_RATIOS.map(r => r * TRACK.halfWidth);
+  trackPath = null; // 트랙 모양이 바뀌었으니 캐시된 경로를 다시 만들게 한다
+}
+applyMap(MAPS[0]); // 모듈 로드 시점에도 TRACK이 항상 값을 갖도록 기본 맵으로 초기화
 
 function mod(x, m) { return ((x % m) + m) % m; }
+
+// 직선 구간용 좌우 물결(S자 커브) 오프셋과 그 미분값.
+// wave가 없으면 항상 0을 돌려줘서 기존 직선 트랙과 완전히 동일하게 동작한다.
+function waveOffset(u, L, wave) {
+  if (!wave) return 0;
+  return wave.amplitude * Math.sin(Math.PI * u / L) * Math.sin(wave.k * 2 * Math.PI * u / L);
+}
+function waveDeriv(u, L, wave) {
+  if (!wave) return 0;
+  const A = wave.amplitude, k = wave.k;
+  const s1 = Math.sin(Math.PI * u / L), c1 = Math.cos(Math.PI * u / L);
+  const s2 = Math.sin(k * 2 * Math.PI * u / L), c2 = Math.cos(k * 2 * Math.PI * u / L);
+  return A * ((Math.PI / L) * c1 * s2 + s1 * (k * 2 * Math.PI / L) * c2);
+}
 
 // s(진행거리, 0~L) -> 트랙 중심선 좌표 {x,y}.
 // 구간 순서: [우측 직선(상행)] -> [위쪽 반원] -> [좌측 직선(하행)] -> [아래쪽 반원] -> (한 바퀴 완료, s=0과 동일 지점으로 복귀)
@@ -56,7 +203,7 @@ function trackPos(s) {
   const topY = T.cy - T.straightLen / 2, bottomY = T.cy + T.straightLen / 2;
 
   if (s < T.straightLen) {
-    return { x: rightX, y: bottomY - s };
+    return { x: rightX + waveOffset(s, T.straightLen, T.wave), y: bottomY - s };
   }
   s -= T.straightLen;
   if (s < T.halfCirc) {
@@ -65,7 +212,7 @@ function trackPos(s) {
   }
   s -= T.halfCirc;
   if (s < T.straightLen) {
-    return { x: leftX, y: topY + s };
+    return { x: leftX + waveOffset(s, T.straightLen, T.wave), y: topY + s };
   }
   s -= T.straightLen;
   const angle = Math.PI - (s / T.halfCirc) * Math.PI; // π -> 0 (좌측에서 아래를 거쳐 우측으로)
@@ -80,17 +227,22 @@ function trackFrame(s) {
   let dx, dy;
 
   if (s < T.straightLen) {
-    dx = 0; dy = -1; // 우측 직선: 위로
+    dx = waveDeriv(s, T.straightLen, T.wave); dy = -1; // 우측 직선: 위로 (+물결)
   } else if ((s -= T.straightLen) < T.halfCirc) {
     const angle = -(s / T.halfCirc) * Math.PI;
     dx = Math.sin(angle); dy = -Math.cos(angle);
   } else if ((s -= T.halfCirc) < T.straightLen) {
-    dx = 0; dy = 1; // 좌측 직선: 아래로
+    dx = waveDeriv(s, T.straightLen, T.wave); dy = 1; // 좌측 직선: 아래로 (+물결)
   } else {
     s -= T.straightLen;
     const angle = Math.PI - (s / T.halfCirc) * Math.PI;
     dx = Math.sin(angle); dy = -Math.cos(angle);
   }
+
+  // 물결 때문에 (dx,dy)가 더 이상 단위벡터가 아닐 수 있으므로 정규화한다
+  // (정규화하지 않으면 좌우 오프셋 거리 계산이 왜곡된다).
+  const len = Math.hypot(dx, dy) || 1;
+  dx /= len; dy /= len;
 
   const heading = Math.atan2(dy, dx);
   const nx = -dy, ny = dx; // 진행방향 기준 "오른쪽"(입력의 right가 이 방향으로 이동)
@@ -115,13 +267,11 @@ function buildTrackPath() {
   path.closePath();
   return path;
 }
-let trackPath = null;
 
 /* ---------- 게임 상수 ---------- */
 const BASE_SPEED = 62;          // 유닛/초
 const STEER_SPEED = 75;         // 유닛/초 (좌우 이동 속도)
-const OFFTRACK_LIMIT = 40;      // 이 값보다 오프셋이 크면 트랙 이탈
-const OFFSET_CLAMP = 62;
+// 이탈선/클램프는 맵마다 도로 폭이 달라서 TRACK.offTrackLimit / TRACK.offsetClamp로 대체됐다(applyMap 참고)
 const TOTAL_LAPS = 3;
 const QUESTION_TIME = 5;         // 하드모드 제한시간(초)
 const EASY_QUESTION_TIME = 18;   // 이지모드는 여유롭게 고민하되, 무한정 멈춰있지 않도록 넉넉한 상한선을 둔다
@@ -137,13 +287,28 @@ const SHIELD_DURATION = 5;  // 방패는 사용한 순간부터 5초가 지나�
 const ROCKET_FLIGHT_TIME = 0.35;  // 발사~명중까지 로켓이 날아가는 시간(초)
 const ROCKET_STUN_DURATION = 1.0; // 맞은 차가 멈칫하는 시간(초)
 const ROCKET_STUN_FACTOR = 0.08;  // 맞은 차의 속도 배율(거의 정지)
+// 신규 아이템 상수
+const LIGHTNING_SLOW_DURATION = 2.0, LIGHTNING_SLOW_FACTOR = 0.4;
+const BOMB_RANGE_S = 55, BOMB_RANGE_OFFSET = 55;
+const BOMB_STUN_DURATION = 1.0, BOMB_SLOW_FACTOR = 0.3;
+const GIANT_SCALE = 1.55, BIGCANDY_DURATION = 4.0;
+// 강한 공격이 한 차량에 연속으로 집중되지 않도록, 한 번 맞으면 잠깐은 다시 맞지 않는다(충돌도 무시).
+// 우주 정거장에서 낙하 후 복귀했을 때의 "충돌 보호"도 이 타이머를 그대로 재사용한다.
+const HIT_PROTECTION_DURATION = 1.0;
+// 사탕 마을 장애물
+const SYRUP_SLOW_DURATION = 1.1, SYRUP_SLOW_FACTOR = 0.5;
+const LOLLIPOP_STUN_DURATION = 0.9, LOLLIPOP_SLOW_FACTOR = 0.4, LOLLIPOP_PUSH = 16;
+// 우주 정거장 낙하
+const FALL_ANIM_DURATION = 1.0;
+// AI가 낙하 구간/회전 막대사탕을 미리 피하려고 하는 거리(값이 클수록 더 일찍 반응)
+const AI_AVOID_LOOKAHEAD = 46;
 // AI 속도 변주 폭을 좁혀서(예전보다 랜덤성 축소) 순위가 운보다 곱셈 실력에 더 좌우되게 한다
 const AI_SPEED_MIN = 0.92, AI_SPEED_MAX = 1.03;
 // 차량마다 고정된 좌우 "차선"을 배정해서 그 안에서만 살짝 흔들리며 달리게 한다.
 // (예전엔 6대가 전부 같은 넓은 구간을 오가며 스쳐서, 위상이 비슷한 차끼리는 계속
 // 서로 밀어내다가 다시 모여들며 그 자리에서 버벅이는 문제가 있었다. 차선을 나누면
 // 서로 다른 차는 애초에 자주 겹치지 않아서 훨씬 자연스럽게 달린다.)
-const LANE_SPACING = 13;   // 맨 바깥 차선 ±32.5. 이탈선(±40)을 넘는 건 pushOffset()이 막는다
+const LANE_SPACING = 13;   // 맨 바깥 차선 ±32.5. 이탈선을 넘는 건 pushOffset()이 막는다
 const LANE_WOBBLE = 4;     // 차 폭(14)의 절반 이하로 흔들어야 옆 차선을 침범하지 않는다
 // 출발선에서는 6대가 같은 s=0에 나란히 서므로 1프레임째부터 충돌 판정이 걸린다.
 // 이 시간 동안은 차끼리 밀어내지 않아서, 출발하자마자 옆으로 밀려 손해 보는 일이 없다.
@@ -152,29 +317,22 @@ const START_GRACE = 0.5;   // 초
 /* 한 지점에 상자를 가로로 한 줄 깔아서(마리오카트처럼) 어느 차선으로 달리든 반드시 하나는
    지나가게 한다. 예전에는 지점마다 상자가 하나뿐이라, 그 차선으로 달리지 않으면 아이템도
    곱셈 문제도 구경 못 하고 한 바퀴가 끝나는 일이 많았다.
-   주행 가능 폭(±OFFTRACK_LIMIT = ±40)을 4칸으로 나눠서, 상자(20 x 20) 네 개가 도로를 꽉 채운다. */
-const BOX_ROW_OFFSETS = [-30, -10, 10, 30];
+   주행 가능 폭을 4칸으로 나눠서, 상자(20 x 20) 네 개가 도로를 꽉 채운다(TRACK.boxRowOffsets). */
 const BOX_PICKUP_RANGE = 11;   // 상자 간격(20)의 절반보다 살짝 넉넉하게 — 어디로 지나도 한 칸은 잡힌다
-
-/* 트랙 위 상자 줄 배치 (진행거리 비율) */
-const BOX_LAYOUT = [
-  { type:"item", frac:0.06 },
-  { type:"math", frac:0.16 },
-  { type:"item", frac:0.30 },
-  { type:"math", frac:0.46 },
-  { type:"item", frac:0.60 },
-  { type:"item", frac:0.72 },
-  { type:"math", frac:0.86 },
-];
 
 /* ---------- 전역 상태 ---------- */
 let selectedCharId = "comet";
 let selectedDiffId = "2-3";
 let selectedModeId = "hard";
+let selectedMapId = "sunny";
 let cars = [];
 let boxes = [];
 let bananas = [];
 let rockets = []; // 발사되어 날아가는 중인 로켓 { from:{x,y}, target, t, duration }
+let bombFx = []; // 폭탄 폭발 파동 연출 { x, y, t, duration }
+let hazards = []; // 현재 맵의 낙하 구간(우주 정거장 전용, s 단위로 환산된 값)
+let obstacles = { syrups: [], lollipops: [] }; // 현재 맵의 장애물(사탕 마을 전용)
+let decorations = []; // 현재 맵의 배경 장식
 let player = null;
 let raceStats = { total: 0, correct: 0, wrongList: [] };
 let mathPopupActive = false;
@@ -222,16 +380,34 @@ function playSound(name) {
   else if (name === "item") { tone(660, 0.08, "square", 0, 0.15); tone(880, 0.08, "square", 0.08, 0.15); }
   else if (name === "boost") { tone(523, 0.1, "sine", 0, 0.2); tone(659, 0.1, "sine", 0.1, 0.2); tone(784, 0.12, "sine", 0.2, 0.2); tone(1046, 0.28, "sine", 0.32, 0.25); }
   else if (name === "finish") { tone(784, 0.15, "sine", 0, 0.2); tone(988, 0.15, "sine", 0.15, 0.2); tone(1175, 0.32, "sine", 0.3, 0.25); }
+  else if (name === "zap") { tone(1400, 0.08, "square", 0, 0.18); tone(700, 0.12, "sawtooth", 0.05, 0.15); }
+  else if (name === "boom") { tone(160, 0.22, "sawtooth", 0, 0.2); tone(90, 0.28, "sine", 0.05, 0.2); }
 }
 
 /* ============================================================
    시작 화면
    ============================================================ */
+const mapListEl = document.getElementById("mapList");
 const charListEl = document.getElementById("charList");
 const diffListEl = document.getElementById("diffList");
 const modeListEl = document.getElementById("modeList");
 
 function buildStartScreen() {
+  MAPS.forEach(m => {
+    const card = document.createElement("div");
+    card.className = "diffCard" + (m.id === selectedMapId ? " selected" : "");
+    card.dataset.id = m.id;
+    card.innerHTML =
+      `<div class="charName">${m.emoji} ${m.name}</div>` +
+      `<div class="charDesc">난이도: ${m.diffLabel}</div>`;
+    card.addEventListener("click", () => {
+      selectedMapId = m.id;
+      [...mapListEl.children].forEach(c => c.classList.remove("selected"));
+      card.classList.add("selected");
+    });
+    mapListEl.appendChild(card);
+  });
+
   CHARACTERS.forEach(ch => {
     const card = document.createElement("div");
     card.className = "charCard" + (ch.id === selectedCharId ? " selected" : "");
@@ -299,8 +475,15 @@ function createCar(char, isPlayer, startIndex) {
     shielded: false, shieldTimer: 0,
     boosted: false, boostTimer: 0,
     hitTimer: 0, hitSlowFactor: 1, hitSource: null, impactFlashTimer: 0,
+    hitProtTimer: 0,
+    spinTimer: 0,
     collideTimer: 0,
     mathSlowTimer: 0,
+    obstacleSlowTimer: 0, obstacleSlowFactor: 1,
+    giant: false, giantTimer: 0,
+    falling: false, fallTimer: 0, fallRespawnDistance: 0,
+    autopilot: false,
+    avoidRolls: {},
     aiPhase: makeAiPhase(startIndex),
     aiSpeedFactor: AI_SPEED_MIN + Math.random() * (AI_SPEED_MAX - AI_SPEED_MIN),
     aiSpeedTimer: 1 + Math.random() * 2,
@@ -321,6 +504,10 @@ function shuffled(arr) {
 function startRace() {
   const diff = DIFFICULTIES.find(d => d.id === selectedDiffId);
   const playerChar = CHARACTERS.find(c => c.id === selectedCharId);
+  const map = MAPS.find(m => m.id === selectedMapId) || MAPS[0];
+  applyMap(map);
+  applyMapTheme(map);
+
   // 캐릭터 배열 순서대로 출발 위치를 고정하면 특정 캐릭터가 매번 같은 위치 이점을 갖게 되므로,
   // AI 출발 순서를 매 레이스마다 무작위로 섞어 공평하게 만든다.
   const aiChars = shuffled(CHARACTERS.filter(c => c.id !== selectedCharId));
@@ -334,8 +521,8 @@ function startRace() {
   aiChars.forEach((c, i) => cars.push(createCar(c, false, lanes[i + 1])));
 
   boxes = [];
-  BOX_LAYOUT.forEach((row, rowIndex) => {
-    BOX_ROW_OFFSETS.forEach(offset => {
+  map.boxLayout.forEach((row, rowIndex) => {
+    TRACK.boxRowOffsets.forEach(offset => {
       boxes.push({
         type: row.type, row: rowIndex, s: row.frac * TRACK.L, offset,
         active: true, respawnTimer: 0,
@@ -344,6 +531,19 @@ function startRace() {
   });
   bananas = [];
   rockets = [];
+  bombFx = [];
+
+  hazards = (map.hazards || []).map(h => ({
+    kind: h.kind, safeHalf: h.safeHalf,
+    sStart: h.fracStart * TRACK.L, sEnd: h.fracEnd * TRACK.L,
+  }));
+  obstacles = {
+    syrups: ((map.obstacles && map.obstacles.syrups) || []).map(o => ({ s: o.frac * TRACK.L, offset: o.offset })),
+    lollipops: ((map.obstacles && map.obstacles.lollipops) || []).map(o => ({ s: o.frac * TRACK.L, offset: o.offset })),
+  };
+  decorations = (map.decorations || []).map(d => d.pond
+    ? { pond: true, x: d.x, y: d.y }
+    : { s: d.frac * TRACK.L, offset: d.offset, emoji: d.emoji, size: d.size || 24 });
 
   raceStats = { total: 0, correct: 0, wrongList: [] };
   raceTime = 0;
@@ -358,11 +558,19 @@ function startRace() {
   document.getElementById("boostBanner").classList.add("hidden");
   document.getElementById("slowBanner").classList.add("hidden");
   document.getElementById("finishBanner").classList.add("hidden");
+  document.getElementById("fallBanner").classList.add("hidden");
   hideMathPopup(true);
 
   showScreen("race");
   lastTime = performance.now();
   requestAnimationFrame(gameLoop);
+}
+
+// 맵 테마(배경색·트랙 색·캔버스 테두리)를 화면에 반영한다
+function applyMapTheme(map) {
+  const wrap = document.getElementById("canvasWrap");
+  wrap.style.background = map.theme.bg;
+  wrap.style.borderColor = map.theme.wrapBorder;
 }
 
 let currentDifficulty = DIFFICULTIES[0];
@@ -412,11 +620,14 @@ function update(dt) {
     if (questionTimeLeft <= 0) resolveQuestion(null);
   }
 
+  computeRanks(); // 아이템 확률/번개 대상 선정에 쓸 순위를 미리 갱신해둔다(1프레임 정도의 오차는 무시)
+
   raceTime += dt;
   cars.forEach(car => updateCar(car, dt));
   if (raceTime > START_GRACE) handleCarCollisions();
   updateBoxRespawns(dt);
   updateRockets(dt);
+  updateBombFx(dt);
 
   // 플레이어가 결승선을 통과하면 결과 화면으로 전환
   if (player.finished && !raceEnding) {
@@ -433,6 +644,35 @@ function update(dt) {
 
 function updateCar(car, dt) {
   const T = TRACK;
+  car.autopilot = car.isPlayer && mathPopupActive; // 곱셈 문제를 푸는 동안은 안전하게 "자동주행" 취급
+
+  // --- 타이머 감소 (낙하 중에도 계속 흐르게 조작보다 먼저 처리) ---
+  if (car.hitTimer > 0) car.hitTimer -= dt;
+  if (car.impactFlashTimer > 0) car.impactFlashTimer -= dt;
+  if (car.hitProtTimer > 0) car.hitProtTimer -= dt;
+  if (car.spinTimer > 0) car.spinTimer -= dt;
+  if (car.collideTimer > 0) car.collideTimer -= dt;
+  if (car.mathSlowTimer > 0) car.mathSlowTimer -= dt;
+  if (car.obstacleSlowTimer > 0) car.obstacleSlowTimer -= dt;
+  if (car.boostTimer > 0) { car.boostTimer -= dt; if (car.boostTimer <= 0) car.boosted = false; }
+  if (car.giantTimer > 0) { car.giantTimer -= dt; if (car.giantTimer <= 0) car.giant = false; }
+  if (car.shielded) { car.shieldTimer -= dt; if (car.shieldTimer <= 0) car.shielded = false; }
+
+  // --- 우주 정거장 낙하 중: 회전하며 작아지는 연출만 하고 나머지 로직은 건너뛴다 ---
+  if (car.falling) {
+    car.fallTimer -= dt;
+    if (car.fallTimer <= 0) {
+      car.falling = false;
+      car.distance = car.fallRespawnDistance;
+      car.offset = 0;
+      car.hitProtTimer = Math.max(car.hitProtTimer, HIT_PROTECTION_DURATION); // 복귀 직후 잠깐 충돌 보호
+      car.s = mod(car.distance, T.L);
+      car.lap = Math.min(TOTAL_LAPS, Math.floor(car.distance / T.L) + 1);
+    }
+    const wp = carWorldPos(car.s, car.offset);
+    car.worldX = wp.x; car.worldY = wp.y; car.heading = wp.heading;
+    return;
+  }
 
   // --- 좌우 조작 ---
   if (car.isPlayer) {
@@ -445,21 +685,17 @@ function updateCar(car, dt) {
     }
   } else if (!car.finished) {
     // 자기 차선(laneOffset)을 중심으로 살짝만 흔들며 달린다(차선 자체가 다르므로
-    // 다른 차와 계속 겹칠 일이 적고, 자연스럽게 앞지르기 할 때만 스친다)
-    const target = car.laneOffset + Math.sin(car.distance * 0.008 + car.aiPhase) * LANE_WOBBLE;
+    // 다른 차와 계속 겹칠 일이 적고, 자연스럽게 앞지르기 할 때만 스친다).
+    // 낙하 구간·회전 막대사탕 앞에서는 대부분 중앙 쪽으로 피하되, 가끔은 실수해서
+    // 그대로 자기 차선을 유지하며 지나간다(완벽하게 주행하지 않도록).
+    let target = car.laneOffset + Math.sin(car.distance * 0.008 + car.aiPhase) * LANE_WOBBLE;
+    const avoid = aiAvoidTarget(car);
+    if (avoid !== null) target = avoid;
     car.offset += (target - car.offset) * Math.min(1, dt * 2.2);
   }
-  car.offset = Math.max(-OFFSET_CLAMP, Math.min(OFFSET_CLAMP, car.offset));
+  car.offset = Math.max(-T.offsetClamp, Math.min(T.offsetClamp, car.offset));
 
-  const offTrack = Math.abs(car.offset) > OFFTRACK_LIMIT;
-
-  // --- 타이머 감소 ---
-  if (car.hitTimer > 0) car.hitTimer -= dt;
-  if (car.impactFlashTimer > 0) car.impactFlashTimer -= dt;
-  if (car.collideTimer > 0) car.collideTimer -= dt;
-  if (car.mathSlowTimer > 0) car.mathSlowTimer -= dt;
-  if (car.boostTimer > 0) { car.boostTimer -= dt; if (car.boostTimer <= 0) car.boosted = false; }
-  if (car.shielded) { car.shieldTimer -= dt; if (car.shieldTimer <= 0) car.shielded = false; }
+  const offTrack = Math.abs(car.offset) > T.offTrackLimit;
 
   // --- AI 속도 변주 ---
   if (!car.isPlayer) {
@@ -470,6 +706,13 @@ function updateCar(car, dt) {
     }
   }
 
+  // --- 사탕 마을 장애물 / 우주 정거장 낙하 판정 ---
+  // 곱셈 문제를 푸는 동안(자동주행)과 부스터 중(장애물만 해당, 낙하는 예외)에는 안전하게 지나간다.
+  checkSyrupHit(car);
+  checkLollipopHit(car);
+  checkHazardFall(car); // 부스터로도 낙하는 막지 못한다(요청사항). 낙하가 시작되면 car.falling이 true가 되고
+  // 다음 프레임부터는 함수 맨 위의 낙하 처리 블록에서 조기 리턴되므로 여기서는 이번 프레임만 자연스럽게 마무리된다.
+
   // --- 속도 계산 ---
   let speed = BASE_SPEED * car.char.speedMul;
   if (!car.isPlayer) speed *= car.aiSpeedFactor;
@@ -477,12 +720,14 @@ function updateCar(car, dt) {
   if (offTrack) speed *= 0.5;
   if (car.hitTimer > 0) speed *= car.hitSlowFactor;
   if (car.mathSlowTimer > 0) speed *= WRONG_SLOW_FACTOR;
+  if (car.obstacleSlowTimer > 0) speed *= car.obstacleSlowFactor;
   if (car.collideTimer > 0) speed *= 0.6;
-  speed = Math.max(speed, BASE_SPEED * 0.18);
+  if (car.falling) speed = 0;
+  speed = Math.max(speed, car.falling ? 0 : BASE_SPEED * 0.18);
   // 이지모드(시간제한 없음)는 문제를 푸는 동안 모든 차를 완전히 멈춰서(레이스 자체를 일시정지) 여유롭게 고민할 수 있게 한다
   if (mathPopupActive && !currentMode.timeLimited) speed = 0;
 
-  if (!car.finished) {
+  if (!car.finished && !car.falling) {
     car.distance += speed * dt;
     const totalDist = TOTAL_LAPS * T.L;
     if (car.distance >= totalDist) {
@@ -508,7 +753,7 @@ function updateCar(car, dt) {
       if (box.type === "item") {
         const capacity = car.isPlayer ? PLAYER_ITEM_SLOTS : 1;
         if (car.items.length < capacity) {
-          car.items.push(rollItem(car.char));
+          car.items.push(rollItem(car));
           box.active = false; box.respawnTimer = 4.5;
           if (car.isPlayer) { playSound("item"); updateItemUI(); }
           if (!car.isPlayer) car.aiItemDelay = 0.5 + Math.random() * 1.2;
@@ -536,6 +781,9 @@ function updateCar(car, dt) {
   });
 
   // --- AI 아이템 자동 사용 ---
+  // useItem()이 조건(대상 존재 여부 등)을 만족하지 못하면 아이템을 소비하지 않고 그냥 리턴하므로,
+  // 아래 코드는 매 프레임 "조건이 될 때까지 계속 시도"하는 형태가 되어 별도의 복잡한 AI 판단 로직 없이도
+  // 자연스럽게 "쓸 수 있을 때 쓴다"가 된다.
   if (!car.isPlayer && car.items.length) {
     car.aiItemDelay -= dt;
     if (car.aiItemDelay <= 0) useItem(car, 0);
@@ -570,14 +818,18 @@ function updateRockets(dt) {
   });
 }
 
-// 충돌 밀어내기 전용 오프셋 이동. 트랙 안에 있던 차가 밀려서 이탈선(±OFFTRACK_LIMIT) 밖으로
+function updateBombFx(dt) {
+  bombFx = bombFx.filter(b => { b.t += dt; return b.t < b.duration; });
+}
+
+// 충돌 밀어내기 전용 오프셋 이동. 트랙 안에 있던 차가 밀려서 이탈선(±TRACK.offTrackLimit) 밖으로
 // 나가지 않도록 막는다. 이미 밖에 나가 있는 차는 더 바깥으로 밀리지만 않게 하고, 스스로 조작해서
 // 돌아오는 건 그대로 둔다.
 function pushOffset(car, delta) {
   const before = car.offset;
-  let next = Math.max(-OFFSET_CLAMP, Math.min(OFFSET_CLAMP, before + delta));
-  if (Math.abs(next) > OFFTRACK_LIMIT && Math.abs(next) > Math.abs(before)) {
-    next = Math.sign(next) * Math.max(OFFTRACK_LIMIT, Math.abs(before));
+  let next = Math.max(-TRACK.offsetClamp, Math.min(TRACK.offsetClamp, before + delta));
+  if (Math.abs(next) > TRACK.offTrackLimit && Math.abs(next) > Math.abs(before)) {
+    next = Math.sign(next) * Math.max(TRACK.offTrackLimit, Math.abs(before));
   }
   car.offset = next;
 }
@@ -589,14 +841,20 @@ function handleCarCollisions() {
       const a = cars[i], b = cars[j];
       if (a.finished || b.finished) continue;
       if (a.boosted || b.boosted) continue;
+      if (a.falling || b.falling) continue;
+      // 방금 다른 공격을 맞았거나(집중 공격 방지) 낙하에서 막 복귀한 차는 잠깐 충돌하지 않는다
+      if (a.hitProtTimer > 0 || b.hitProtTimer > 0) continue;
       // AI끼리는 서로 부딪혀 밀어내지 않는다. 6대가 좁은 도로를 나눠 쓰다 보면 AI 두세 대가
       // 계속 서로 밀어내다 다시 모여들며 그 자리에서 버벅이는 문제가 있었는데, AI-AI 충돌을
       // 없애면 그 문제가 근본적으로 사라진다(플레이어가 낀 충돌은 게임성을 위해 그대로 둔다).
       if (!a.isPlayer && !b.isPlayer) continue;
       // 판정 크기는 drawCar()의 차 크기(길이 22 x 폭 14)에 맞춘다. 예전 폭 24는 차 폭의
       // 1.7배라 옆 차선 차와 화면상 닿지도 않았는데 계속 충돌로 처리됐다.
+      // 거대 사탕으로 커진 차는 판정 범위가 넓어진다.
+      const giantExtra = (a.giant ? 8 : 0) + (b.giant ? 8 : 0);
+      const dSLimit = 18 + giantExtra * 0.6, dOLimit = 13 + giantExtra;
       const key = i + ":" + j;
-      if (circDist(a.s, b.s) < 18 && Math.abs(a.offset - b.offset) < 13) {
+      if (circDist(a.s, b.s) < dSLimit && Math.abs(a.offset - b.offset) < dOLimit) {
         nextContacts.add(key);
         const isNewContact = !contactPairs.has(key);
         const dir = a.offset <= b.offset ? -1 : 1;
@@ -607,6 +865,14 @@ function handleCarCollisions() {
           const bumpDir = a.shielded ? -dir : dir;
           pushOffset(bumped, bumpDir * 10);
           if (isNewContact) bumped.collideTimer = Math.max(bumped.collideTimer, 0.4);
+        } else if (a.giant !== b.giant) {
+          // 거대해진 차는 거의 밀리지 않고, 부딪힌 상대만 옆으로 크게 밀려난다
+          const bumped = a.giant ? b : a;
+          const giantCar = a.giant ? a : b;
+          const bumpDir = a.giant ? -dir : dir;
+          pushOffset(bumped, bumpDir * 13);
+          if (isNewContact) bumped.collideTimer = Math.max(bumped.collideTimer, 0.4);
+          pushOffset(giantCar, (a.giant ? dir : -dir) * 1.5);
         } else {
           pushOffset(a, dir * 3);
           pushOffset(b, -dir * 3);
@@ -621,20 +887,159 @@ function handleCarCollisions() {
   contactPairs = nextContacts;
 }
 
+/* ---------- 사탕 마을 장애물 ---------- */
+// 시럽 웅덩이: 방패로도 못 막지만, 부스터 중이거나(구구단 파워 UP) 곱셈 문제를 푸는 자동주행 중에는 무시한다.
+function checkSyrupHit(car) {
+  if (car.boosted || car.autopilot) return;
+  obstacles.syrups.forEach(syr => {
+    if (car.obstacleSlowTimer > 0) return; // 이미 슬로우 중이면 웅덩이 안에 있어도 다시 늘리지 않는다(무한 감속 방지)
+    const dS = circDist(car.s, syr.s);
+    const dO = Math.abs(car.offset - syr.offset);
+    if (dS < 11 && dO < 18) {
+      car.obstacleSlowTimer = SYRUP_SLOW_DURATION;
+      car.obstacleSlowFactor = SYRUP_SLOW_FACTOR;
+    }
+  });
+}
+
+// 회전하는 막대사탕: 방패로 한 번 막을 수 있고, 부딪히면 옆으로 살짝 밀리며 잠깐 빙글 돈다.
+function checkLollipopHit(car) {
+  if (car.boosted || car.autopilot || car.hitProtTimer > 0) return;
+  obstacles.lollipops.forEach(lol => {
+    if (car.hitProtTimer > 0) return; // 이번 프레임에 이미 다른 막대사탕에 맞았으면 중복 적용 방지
+    const dS = circDist(car.s, lol.s);
+    const dO = Math.abs(car.offset - lol.offset);
+    if (dS < 12 && dO < 20) {
+      const wasShielded = car.shielded;
+      hitCar(car, "lollipop");
+      if (!wasShielded) {
+        const dir = car.offset < lol.offset ? -1 : 1;
+        pushOffset(car, dir * LOLLIPOP_PUSH);
+      }
+    }
+  });
+}
+
+/* ---------- 우주 정거장 낙하 ---------- */
+// 부스터로도 낙하는 막지 못한다. 자동주행(곱셈 문제 풀이) 중과 낙하 직후 보호시간 동안만 안전하다.
+function checkHazardFall(car) {
+  if (car.autopilot || car.falling || car.hitProtTimer > 0 || car.finished) return;
+  hazards.forEach(hz => {
+    if (car.falling) return;
+    if (car.s >= hz.sStart && car.s < hz.sEnd && Math.abs(car.offset) > hz.safeHalf) {
+      triggerFall(car);
+    }
+  });
+}
+
+function triggerFall(car) {
+  if (car.falling) return;
+  car.falling = true;
+  car.fallTimer = FALL_ANIM_DURATION;
+
+  // 낙하 시점의 바퀴 안에서 "가장 최근에 지난 안전 체크포인트"로 되돌아간다(바퀴 수는 유지)
+  const T = TRACK;
+  const laneS = mod(car.distance, T.L);
+  const cps = (currentMap.checkpoints && currentMap.checkpoints.length) ? currentMap.checkpoints : [0];
+  let bestFrac = 0;
+  cps.forEach(f => { if (f * T.L <= laneS) bestFrac = Math.max(bestFrac, f); });
+  const lapBase = Math.floor(car.distance / T.L) * T.L;
+  car.fallRespawnDistance = lapBase + bestFrac * T.L;
+
+  if (car.isPlayer) {
+    playSound("wrong");
+    const banner = document.getElementById("fallBanner");
+    banner.textContent = "앗, 우주로 빠졌다! 🌌";
+    banner.classList.remove("hidden");
+    setTimeout(() => banner.classList.add("hidden"), 1100);
+  }
+}
+
+/* ---------- AI 회피(낙하 구간 / 회전 막대사탕) ----------
+   AI는 위험 구간이 가까워지면 대부분 중앙 쪽으로 피하려 하지만, 매번 다가올 때마다 확률을 새로
+   뽑아서 가끔은 그대로 지나가게 한다(완벽한 주행 방지). 지나가면 판정을 초기화해서 다음 바퀴에
+   다시 시도하게 만든다. */
+function aiAvoidTarget(car) {
+  for (let i = 0; i < hazards.length; i++) {
+    const hz = hazards[i], key = "hz" + i;
+    if (car.s > hz.sStart - AI_AVOID_LOOKAHEAD && car.s < hz.sEnd) {
+      if (car.avoidRolls[key] === undefined) car.avoidRolls[key] = Math.random() < 0.93;
+      return car.avoidRolls[key] ? 0 : car.laneOffset;
+    } else if (car.avoidRolls[key] !== undefined) {
+      delete car.avoidRolls[key];
+    }
+  }
+  const lollipops = obstacles.lollipops;
+  for (let i = 0; i < lollipops.length; i++) {
+    const lol = lollipops[i], key = "lol" + i;
+    if (car.s > lol.s - AI_AVOID_LOOKAHEAD && car.s < lol.s + 14) {
+      if (car.avoidRolls[key] === undefined) car.avoidRolls[key] = Math.random() < 0.86;
+      if (car.avoidRolls[key]) return lol.offset > 0 ? -18 : 18;
+      return car.laneOffset;
+    } else if (car.avoidRolls[key] !== undefined) {
+      delete car.avoidRolls[key];
+    }
+  }
+  return null;
+}
+
 /* ---------- 아이템 로직 ---------- */
-function rollItem(char) {
-  const w = { banana: 1, rocket: char.itemLuck, shield: char.itemLuck };
-  const total = w.banana + w.rocket + w.shield;
+// 현재 순위(상위/중위/하위)에 따라 아이템 확률을 다르게 뽑는다.
+// 상위권은 방어 위주(바나나·방패), 중위권은 견제 위주(로켓·폭탄), 하위권은 역전 위주(번개·거대 사탕).
+// 럭키 캐릭터의 itemLuck은 기존처럼 "바나나를 제외한 강한 아이템"에 전부 곱해서 자연스럽게 확장한다.
+// 1등 차량은 번개를 뽑지 않는다(뽑히더라도 확률 0으로 만들어 다른 아이템으로 대체).
+function rollItem(car) {
+  const char = car.char;
+  const n = cars.length;
+  const rank = car.rank || Math.ceil(n / 2);
+  const tier = rank <= Math.ceil(n / 3) ? "top" : (rank <= Math.ceil(n * 2 / 3) ? "mid" : "bottom");
+
+  const w = { banana: 1, shield: 1, rocket: 1, bomb: 1, lightning: 1, bigcandy: 1 };
+  if (tier === "top") { w.banana = 3; w.shield = 3; w.rocket = 0.6; w.bomb = 0.6; w.lightning = 0.4; w.bigcandy = 0.4; }
+  else if (tier === "mid") { w.rocket = 2.2; w.bomb = 2.2; w.lightning = 0.8; w.bigcandy = 0.8; }
+  else { w.lightning = 2.6; w.bigcandy = 2.6; w.banana = 0.8; w.shield = 0.8; w.rocket = 1.2; w.bomb = 1.2; }
+
+  Object.keys(w).forEach(k => { if (k !== "banana") w[k] *= char.itemLuck; });
+  if (rank === 1) w.lightning = 0; // 1등은 번개를 획득하지 않는다
+
+  const total = Object.values(w).reduce((a, b) => a + b, 0);
   let r = Math.random() * total;
-  if (r < w.banana) return "banana";
-  r -= w.banana;
-  if (r < w.rocket) return "rocket";
-  return "shield";
+  for (const key of Object.keys(w)) {
+    if (r < w[key]) return key;
+    r -= w[key];
+  }
+  return "banana";
 }
 
 function useItem(car, slot) {
   const item = car.items[slot];
   if (!item) return;
+
+  if (item === "lightning") {
+    // 현재 1등에게만 떨어진다. 자신이 1등이 되어버려 대상이 없으면(순위가 바뀐 경우 등)
+    // 칸을 비우지 않고 그대로 들고 있는다 — 다음 프레임에 다시 시도된다.
+    const leader = cars.find(c => c !== car && !c.finished && c.rank === 1);
+    if (!leader) return;
+    car.items.splice(slot, 1);
+    if (car.isPlayer) { updateItemUI(); playSound("item"); }
+    triggerScreenFlash();
+    playSound("zap");
+    hitCar(leader, "lightning");
+    return;
+  }
+  if (item === "bomb") {
+    // 주변에 맞힐 상대가 있을 때만 사용한다(없으면 소비하지 않고 계속 들고 있는다)
+    const targets = cars.filter(o => o !== car && !o.finished &&
+      circDist(car.s, o.s) < BOMB_RANGE_S && Math.abs(car.offset - o.offset) < BOMB_RANGE_OFFSET);
+    if (targets.length === 0) return;
+    car.items.splice(slot, 1);
+    if (car.isPlayer) { updateItemUI(); playSound("item"); }
+    playSound("boom");
+    bombFx.push({ x: car.worldX, y: car.worldY, t: 0, duration: 0.5 });
+    targets.forEach(t => hitCar(t, "bomb"));
+    return;
+  }
+
   car.items.splice(slot, 1);   // 쓴 칸만 비우고 뒤 칸이 앞으로 당겨진다
 
   if (item === "shield") {
@@ -660,21 +1065,47 @@ function useItem(car, slot) {
       rockets.push({ from: { x: car.worldX, y: car.worldY }, target, t: 0, duration: ROCKET_FLIGHT_TIME });
     }
     // 명중시킬 상대가 아예 없는 극단적인 경우(레이스 막판 혼자 남음)에는 그냥 허공으로 사라진다
+  } else if (item === "bigcandy") {
+    car.giant = true;
+    car.giantTimer = BIGCANDY_DURATION;
+    if (car.isPlayer) { updateItemUI(); playSound("item"); }
   }
 }
 
 function hitCar(car, source) {
+  if (car.hitProtTimer > 0) return; // 방금 다른 공격을 맞았으면(연속 집중 공격 방지) 이번 공격은 무효
   if (car.boosted) return;
-  if (car.shielded) { car.shielded = false; return; }
+  if (car.shielded) { car.shielded = false; car.hitProtTimer = HIT_PROTECTION_DURATION; return; }
   car.hitSource = source;
   car.impactFlashTimer = 0.25;
+  car.hitProtTimer = HIT_PROTECTION_DURATION;
   if (source === "rocket") {
     car.hitTimer = ROCKET_STUN_DURATION;
     car.hitSlowFactor = ROCKET_STUN_FACTOR; // 거의 멈춰버릴 정도로 확실하게 느려짐
+  } else if (source === "lightning") {
+    car.hitTimer = LIGHTNING_SLOW_DURATION;
+    car.hitSlowFactor = LIGHTNING_SLOW_FACTOR;
+  } else if (source === "bomb") {
+    car.hitTimer = BOMB_STUN_DURATION;
+    car.hitSlowFactor = BOMB_SLOW_FACTOR;
+    car.spinTimer = 0.9;
+  } else if (source === "lollipop") {
+    car.hitTimer = LOLLIPOP_STUN_DURATION;
+    car.hitSlowFactor = LOLLIPOP_SLOW_FACTOR;
+    car.spinTimer = 0.8;
   } else {
     car.hitTimer = 1.0;
     car.hitSlowFactor = 0.3; // 바나나는 미끄러지는 정도
   }
+}
+
+// 번개 사용 시 화면이 잠깐 번쩍이는 연출
+function triggerScreenFlash() {
+  const el = document.getElementById("screenFlash");
+  if (!el) return;
+  el.classList.remove("flashAnim");
+  void el.offsetWidth; // 리플로우를 강제해서 애니메이션을 다시 재생시킨다
+  el.classList.add("flashAnim");
 }
 
 // slot이 없으면(스페이스바) 맨 앞 칸부터 쓴다.
@@ -805,8 +1236,8 @@ function updateHUD() {
   document.getElementById("hudLap").textContent = `바퀴 ${player.lap}/${TOTAL_LAPS}`;
 }
 
-const ITEM_NAMES = { banana: "바나나", rocket: "로켓", shield: "방패" };
-const ITEM_EMOJI = { banana: "🍌", rocket: "🚀", shield: "🛡️" };
+const ITEM_NAMES = { banana: "바나나", rocket: "로켓", shield: "방패", lightning: "번개", bomb: "폭탄", bigcandy: "왕사탕" };
+const ITEM_EMOJI = { banana: "🍌", rocket: "🚀", shield: "🛡️", lightning: "⚡", bomb: "💣", bigcandy: "🍬" };
 // 아이템 칸은 좌우 버튼과 같은 줄에 둬서, 손가락이 있는 곳에서 바로 누를 수 있게 한다.
 // 빈 칸도 계속 보여줘야 "몇 개 모았는지"가 눈에 들어온다.
 function updateItemUI() {
@@ -849,15 +1280,18 @@ function applyCameraTransform() {
 function render() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // 잔디 배경
-  ctx.fillStyle = "#7ec850";
+  // 맵 테마 배경
+  ctx.fillStyle = currentMap.theme.bg;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   ctx.save();
   applyCameraTransform();
 
+  drawDecorations();
   drawTrack();
   drawFinishLine();
+  drawHazardZones();
+  drawObstacles();
   drawBoxes();
   drawBananas();
 
@@ -865,10 +1299,112 @@ function render() {
   ranked.forEach(car => drawCar(car));
 
   drawRockets();
+  drawBombFx();
 
   ctx.restore();
 
   drawMinimap();
+}
+
+// 맵 배경 장식(나무·꽃·연못·응원 동물·별·행성·사탕 등). 게임 진행에는 전혀 영향을 주지 않는다.
+function drawDecorations() {
+  decorations.forEach(d => {
+    if (d.pond) { drawPond(d); return; }
+    const p = carWorldPos(d.s, d.offset);
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(-cameraRotation); // 상자와 같은 이유로 항상 똑바로 서 있게 카메라 회전을 되돌린다
+    ctx.font = d.size + "px sans-serif";
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText(d.emoji, 0, 0);
+    ctx.restore();
+  });
+}
+function drawPond(d) {
+  ctx.save();
+  ctx.translate(d.x, d.y);
+  ctx.fillStyle = "#4fa8e0";
+  ctx.strokeStyle = "#2f7fb8";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 34, 22, 0, 0, Math.PI * 2);
+  ctx.fill(); ctx.stroke();
+  ctx.font = "18px sans-serif";
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText("🦆", -8, -2);
+  ctx.restore();
+}
+
+// 사탕 마을 장애물: 시럽 웅덩이(밟으면 감속) + 회전하는 막대사탕(부딪히면 빙글 돌며 밀림)
+function drawObstacles() {
+  obstacles.syrups.forEach(syr => {
+    const p = carWorldPos(syr.s, syr.offset);
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.fillStyle = "rgba(180,90,20,0.75)";
+    ctx.beginPath(); ctx.ellipse(0, 0, 16, 10, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "rgba(120,60,10,0.9)"; ctx.lineWidth = 2; ctx.stroke();
+    ctx.restore();
+  });
+  obstacles.lollipops.forEach(lol => {
+    const p = carWorldPos(lol.s, lol.offset);
+    const spin = performance.now() / 300;
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(spin);
+    ctx.strokeStyle = "#8a5a00"; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(0, 4); ctx.lineTo(0, 17); ctx.stroke();
+    ctx.fillStyle = "#ff6fa8";
+    ctx.beginPath(); ctx.arc(0, 0, 11, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "#c23d78"; ctx.lineWidth = 2;
+    for (let k = 0; k < 3; k++) { ctx.beginPath(); ctx.arc(0, 0, 3 + k * 3, 0, Math.PI * 1.4); ctx.stroke(); }
+    ctx.restore();
+  });
+}
+
+// 우주 정거장의 좁은 다리/점프 구간을 도로 위에 "잘려나간" 것처럼 표현한다
+function drawHazardZones() {
+  hazards.forEach(hz => {
+    const bg = currentMap.theme.bg;
+    if (hz.kind === "bridge") {
+      drawZoneCutaway(hz.sStart, hz.sEnd, hz.safeHalf, TRACK.halfWidth + 6, bg);
+      drawZoneCutaway(hz.sStart, hz.sEnd, -TRACK.halfWidth - 6, -hz.safeHalf, bg);
+    } else {
+      drawZoneCutaway(hz.sStart, hz.sEnd, -TRACK.halfWidth - 6, TRACK.halfWidth + 6, bg);
+    }
+  });
+}
+function drawZoneCutaway(sStart, sEnd, offA, offB, color) {
+  const steps = 10;
+  ctx.beginPath();
+  for (let i = 0; i <= steps; i++) {
+    const s = sStart + (sEnd - sStart) * i / steps;
+    const p = carWorldPos(s, offA);
+    if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
+  }
+  for (let i = steps; i >= 0; i--) {
+    const s = sStart + (sEnd - sStart) * i / steps;
+    const p = carWorldPos(s, offB);
+    ctx.lineTo(p.x, p.y);
+  }
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.fill();
+}
+
+// 폭탄이 터질 때의 원형 파동 연출
+function drawBombFx() {
+  bombFx.forEach(b => {
+    const t = b.t / b.duration;
+    ctx.save();
+    ctx.translate(b.x, b.y);
+    ctx.strokeStyle = `rgba(255,120,60,${1 - t})`;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(0, 0, 10 + t * 60, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  });
 }
 
 // 화면 우측 상단에 실제 트랙 모양을 그대로 축소해서 보여주는 미니맵.
@@ -936,7 +1472,7 @@ function drawTrack() {
   // 트랙 중심선을 따라 일정한 폭으로 선을 그려서 직선·커브가 하나로 매끄럽게 이어진
   // 폐곡선 도로를 만든다(구간마다 따로 그리지 않으므로 이어붙는 자국이 없다).
   ctx.save();
-  ctx.strokeStyle = "#8d8d95";
+  ctx.strokeStyle = currentMap.theme.road;
   ctx.lineWidth = TRACK.halfWidth * 2;
   ctx.lineJoin = "round";
   ctx.lineCap = "round";
@@ -1058,6 +1594,8 @@ function drawCar(car) {
   ctx.save();
   ctx.translate(car.worldX, car.worldY);
   ctx.rotate(car.heading);
+  if (car.spinTimer > 0) ctx.rotate(car.spinTimer * 16); // 폭탄/막대사탕에 맞아 빙글 도는 연출
+  if (car.giant && car.giantTimer > 0) ctx.scale(GIANT_SCALE, GIANT_SCALE);
 
   // 부스터 발광 효과 (밝고 화려한 무지개색 - 정답 보상)
   if (car.boosted) {
@@ -1068,8 +1606,8 @@ function drawCar(car) {
     ctx.arc(0, 0, glowR, 0, Math.PI * 2);
     ctx.fill();
   }
-  // 감속 효과 (칙칙한 회색 연기 - 오답 페널티나 바나나에 미끄러진 경우, 부스터와 확실히 구분)
-  if (car.mathSlowTimer > 0 || (car.hitTimer > 0 && car.hitSource === "banana")) {
+  // 감속 효과 (칙칙한 회색 연기 - 오답 페널티나 바나나/시럽에 미끄러진 경우, 부스터와 확실히 구분)
+  if (car.mathSlowTimer > 0 || car.obstacleSlowTimer > 0 || (car.hitTimer > 0 && car.hitSource === "banana")) {
     const wobble = Math.sin(performance.now() / 90) * 3;
     ctx.fillStyle = "rgba(120,120,120,0.5)";
     ctx.beginPath();
@@ -1089,12 +1627,38 @@ function drawCar(car) {
       ctx.fillText("★", Math.cos(ang) * 12, -16 + Math.sin(ang) * 4);
     }
   }
+  // 번개 피격 표시
+  if (car.hitTimer > 0 && car.hitSource === "lightning") {
+    ctx.font = "16px sans-serif";
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("⚡", 0, -18);
+  }
+  // 폭탄 피격 표시
+  if (car.hitTimer > 0 && car.hitSource === "bomb") {
+    ctx.font = "14px sans-serif";
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("💥", 0, -16);
+  }
+  // 회전 막대사탕 피격 표시
+  if (car.hitTimer > 0 && car.hitSource === "lollipop") {
+    ctx.font = "14px sans-serif";
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("🌀", 0, -16);
+  }
   // 피격 직후 짧은 하얀 충격 플래시
   if (car.impactFlashTimer > 0) {
     ctx.fillStyle = `rgba(255,255,255,${(car.impactFlashTimer / 0.25) * 0.8})`;
     ctx.beginPath();
     ctx.arc(0, 0, 20, 0, Math.PI * 2);
     ctx.fill();
+  }
+  // 거대 사탕 효과(분홍 테두리)
+  if (car.giant && car.giantTimer > 0) {
+    ctx.strokeStyle = "rgba(255,105,180,0.9)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(0, 0, 20, 0, Math.PI * 2);
+    ctx.stroke();
   }
   // 방패 효과
   if (car.shielded) {
@@ -1128,6 +1692,24 @@ function drawCar(car) {
   }
 
   ctx.restore();
+
+  // 낙하 연출(회전하며 작아짐)은 차체와 별개로, 원래 크기 기준 축소 비율을 직접 계산해 그린다
+  if (car.falling) {
+    const t = 1 - Math.max(0, car.fallTimer) / FALL_ANIM_DURATION; // 0 -> 1
+    const scale = Math.max(0.05, 1 - t);
+    ctx.save();
+    ctx.translate(car.worldX, car.worldY);
+    ctx.rotate(car.heading + t * Math.PI * 6);
+    ctx.scale(scale, scale);
+    ctx.globalAlpha = Math.max(0, 1 - t);
+    ctx.fillStyle = car.char.color;
+    ctx.strokeStyle = "#222";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(-w/2, -h/2, w, h, 4); else ctx.rect(-w/2,-h/2,w,h);
+    ctx.fill(); ctx.stroke();
+    ctx.restore();
+  }
 }
 
 /* ============================================================

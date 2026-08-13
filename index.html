@@ -61,7 +61,23 @@
       </div>
       <div class="tutorialCard">
         <div class="tutorialIcon">🛡️</div>
-        <div class="tutorialText"><b>방패</b><br>충돌·바나나·로켓 공격을 한 번 막아줘요.</div>
+        <div class="tutorialText"><b>방패</b><br>충돌·바나나·로켓·번개·폭탄·막대사탕 공격을 한 번 막아줘요.</div>
+      </div>
+      <div class="tutorialCard">
+        <div class="tutorialIcon">⚡</div>
+        <div class="tutorialText"><b>번개</b><br>현재 1등을 잠깐 느리게 만들어요. 화면이 살짝 번쩍여요.</div>
+      </div>
+      <div class="tutorialCard">
+        <div class="tutorialIcon">💣</div>
+        <div class="tutorialText"><b>폭탄</b><br>내 주변에 있는 상대를 한꺼번에 느리게 만들어요.</div>
+      </div>
+      <div class="tutorialCard">
+        <div class="tutorialIcon">🍬</div>
+        <div class="tutorialText"><b>왕사탕</b><br>잠깐 커져서 부딪힌 상대를 옆으로 밀어내요. 빨라지지는 않아요.</div>
+      </div>
+      <div class="tutorialCard">
+        <div class="tutorialIcon">🗺️</div>
+        <div class="tutorialText"><b>트랙 선택</b><br>햇살 공원 · 사탕 마을 · 우주 정거장 중에서 트랙을 고를 수 있어요.</div>
       </div>
       <div class="tutorialCard">
         <div class="tutorialIcon">🐢🔥</div>
@@ -75,13 +91,16 @@
   <section id="startScreen" class="screen hidden">
     <h1>🏎️ 웨티아빠의 구구단 레이싱</h1>
 
-    <h2>1. 캐릭터를 골라주세요</h2>
+    <h2>1. 트랙을 골라주세요</h2>
+    <div id="mapList"></div>
+
+    <h2>2. 캐릭터를 골라주세요</h2>
     <div id="charList"></div>
 
-    <h2>2. 난이도를 골라주세요</h2>
+    <h2>3. 난이도를 골라주세요</h2>
     <div id="diffList"></div>
 
-    <h2>3. 모드를 골라주세요</h2>
+    <h2>4. 모드를 골라주세요</h2>
     <div id="modeList"></div>
 
     <button id="startBtn" class="bigBtn">🏁 레이스 시작!</button>
@@ -90,7 +109,8 @@
     <p class="howto">
       PC: ← → 또는 A / D 키로 이동 · 스페이스바로 아이템 사용<br>
       아이템은 아래 칸에 3개까지 모이고, 쓰고 싶은 칸을 누르면 돼요<br>
-      트랙 위 <b>일반 상자</b>는 아이템, <b>× 상자</b>는 곱셈 문제예요!
+      트랙 위 <b>일반 상자</b>는 아이템, <b>× 상자</b>는 곱셈 문제예요!<br>
+      사탕 마을은 시럽·회전 막대사탕을, 우주 정거장은 좁은 다리·점프 구간을 조심하세요!
     </p>
 
     <p class="blogFooter">✍️ <a href="https://blog.naver.com/wetipapa" target="_blank" rel="noopener">웨티아빠 블로그</a> 놀러가기</p>
@@ -106,8 +126,10 @@
 
     <div id="canvasWrap">
       <canvas id="gameCanvas" width="640" height="900"></canvas>
+      <div id="screenFlash"></div>
       <div id="boostBanner" class="hidden">구구단 파워 UP! ✨</div>
       <div id="slowBanner" class="hidden">아이고, 느려져요! 🐢</div>
+      <div id="fallBanner" class="hidden"></div>
       <div id="finishBanner" class="hidden"></div>
 
       <div id="mathPopup" class="hidden">
