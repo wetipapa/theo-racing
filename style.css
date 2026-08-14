@@ -126,14 +126,24 @@ h2 { font-size: 1.3rem; text-align: center; margin: 14px 0 8px; color: var(--rc-
 .tagline { font-size: 1.05rem; color: var(--rc-ink-soft); font-weight: bold; margin: 0 0 6px; }
 
 /* "바로 시작"이 첫 화면에서 가장 강한 CTA가 되도록, 다른 버튼보다 크게 만든다 */
-.startBtn { font-size: 1.6rem; padding: 18px 40px; margin: 6px 8px 2px; }
+/* 구구단 팡팡의 xl 버튼과 같은 규격 — 폭 320px, 높이 80px, 글자 1.5rem, 모서리 28px.
+   내용 크기에 맞춰 두면 글자 수가 적어 버튼이 작아 보인다. */
+.startBtn {
+  width: 100%;
+  max-width: 320px;
+  min-height: 80px;
+  font-size: 1.5rem;
+  padding: 16px 32px;
+  border-radius: 28px;
+  margin: 6px auto 2px;
+}
 
 /* 설정 바꾸기 / 게임 방법 — 나란한 보조 버튼 두 개 */
 .panelToggles {
   display: flex;
   gap: 10px;
   width: 100%;
-  max-width: 420px;
+  max-width: 320px;
   margin: 0 auto 12px;
   padding: 0 8px;
   box-sizing: border-box;
@@ -503,7 +513,7 @@ h2 { font-size: 1.3rem; text-align: center; margin: 14px 0 8px; color: var(--rc-
 @media (max-width: 560px) {
   h1 { font-size: 1.5rem; margin: 8px 0 4px; }
   .tagline { font-size: 0.95rem; margin-bottom: 4px; }
-  .startBtn { font-size: 1.35rem; padding: 15px 30px; margin: 8px 8px 4px; }
+  .startBtn { font-size: 1.5rem; min-height: 80px; padding: 16px 28px; margin: 6px auto 2px; }
   .charCard, .diffCard { padding: 8px; }
   #mathQuestion { font-size: 2rem; }
   .answerBtn { font-size: 1.4rem; padding: 12px 18px; min-width: 70px; }
