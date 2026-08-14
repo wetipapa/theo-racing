@@ -515,3 +515,17 @@ h2 { font-size: 1.3rem; text-align: center; margin: 14px 0 8px; color: #2b6cb0; 
   font-family: inherit;
 }
 .tablePreset:active { transform: scale(0.95); }
+
+/* 시작 화면의 웨티 카트 그림.
+   그림이 화면을 다 차지해 '바로 시작'이 접힘선 아래로 밀리면 안 되므로, 화면 높이에
+   비례해 크기를 잡고 상한을 둔다. 짧은 화면(가로 모드 등)에서는 자동으로 작아진다. */
+#heroImage {
+  display: block;
+  width: auto;
+  height: min(28vh, 190px);
+  margin: 2px auto 6px;
+}
+
+@media (max-height: 620px) {
+  #heroImage { height: min(20vh, 130px); }
+}
