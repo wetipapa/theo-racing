@@ -144,7 +144,8 @@ h2 { font-size: 1.3rem; text-align: center; margin: 14px 0 8px; color: var(--rc-
   gap: 10px;
   width: 100%;
   max-width: 320px;
-  margin: 0 auto 12px;
+  /* 주 버튼과 붙어 있으면 셋이 한 덩어리로 보인다. "바로 시작"이 혼자 도드라져야 한다 */
+  margin: 24px auto 12px;
   padding: 0 8px;
   box-sizing: border-box;
 }
