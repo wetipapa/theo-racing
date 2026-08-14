@@ -580,25 +580,37 @@ function buildStartScreen() {
   document.getElementById("startBtn").addEventListener("click", startFromScreen);
   document.getElementById("startBtnInPanel").addEventListener("click", startFromScreen);
 
-  // "설정 바꾸기": 평소엔 요약 한 줄만 보이고, 누르면 아래에 선택 영역이 펼쳐진다(아코디언 1개).
-  const settingsSummaryBtn = document.getElementById("settingsSummary");
-  const settingsPanel = document.getElementById("settingsPanel");
-  settingsSummaryBtn.addEventListener("click", () => setSettingsPanelOpen(settingsPanel.classList.contains("hidden")));
+  // 설정과 게임 방법은 첫 화면 안에서 펼쳐지는 패널이다. 둘 다 접힌 채로 시작하고,
+  // 하나를 열면 다른 하나는 닫는다 — 화면이 길어져 "바로 시작"이 밀려나지 않게.
+  document.getElementById("settingsBtn").addEventListener("click", () => toggleStartPanel("settings"));
+  document.getElementById("howtoBtn").addEventListener("click", () => toggleStartPanel("howto"));
+}
 
-  // "게임 방법": 누를 때만 열리는 오버레이. 안 읽어도 플레이에는 문제 없다.
-  const howtoModal = document.getElementById("howtoModal");
-  document.getElementById("howtoBtn").addEventListener("click", () => howtoModal.classList.remove("hidden"));
-  document.getElementById("howtoCloseBtn").addEventListener("click", () => howtoModal.classList.add("hidden"));
-  document.getElementById("howtoCloseBtn2").addEventListener("click", () => howtoModal.classList.add("hidden"));
-  howtoModal.addEventListener("click", e => { if (e.target === howtoModal) howtoModal.classList.add("hidden"); });
+// 첫 화면의 펼침 패널 두 개. key는 "settings" | "howto" | null
+const START_PANELS = {
+  settings: { panel: "settingsPanel", btn: "settingsBtn", open: "⚙️ 설정 접기 ▴", closed: "⚙️ 설정 바꾸기 ▾" },
+  howto:    { panel: "howtoPanel",    btn: "howtoBtn",    open: "❓ 게임 방법 접기 ▴", closed: "❓ 게임 방법 ▾" },
+};
+
+function setStartPanel(key) {
+  for (const [name, cfg] of Object.entries(START_PANELS)) {
+    const isOpen = name === key;
+    const panel = document.getElementById(cfg.panel);
+    const btn = document.getElementById(cfg.btn);
+    panel.classList.toggle("hidden", !isOpen);
+    btn.classList.toggle("panelToggleOpen", isOpen);
+    btn.setAttribute("aria-expanded", String(isOpen));
+    btn.textContent = isOpen ? cfg.open : cfg.closed;
+  }
+}
+
+function toggleStartPanel(key) {
+  const alreadyOpen = !document.getElementById(START_PANELS[key].panel).classList.contains("hidden");
+  setStartPanel(alreadyOpen ? null : key);
 }
 
 function setSettingsPanelOpen(open) {
-  const panel = document.getElementById("settingsPanel");
-  const btn = document.getElementById("settingsSummary");
-  panel.classList.toggle("hidden", !open);
-  btn.setAttribute("aria-expanded", String(open));
-  btn.querySelector(".settingsSummaryEdit").textContent = open ? "⚙️ 설정 접기 ▴" : "⚙️ 설정 바꾸기 ▾";
+  setStartPanel(open ? "settings" : null);
 }
 
 /* ============================================================
@@ -1970,7 +1982,7 @@ document.getElementById("homeBtn").addEventListener("click", () => {
 window.addEventListener("keydown", e => {
   // 게임 방법 오버레이가 열려있을 때는 Esc로 바로 닫을 수 있게 한다.
   if (e.key === "Escape") {
-    document.getElementById("howtoModal").classList.add("hidden");
+    setStartPanel(null);
     return;
   }
   ensureAudio();

@@ -21,8 +21,8 @@
 <meta name="twitter:image" content="https://racing.wetipapa.com/og-image.png">
 
 <!-- 브라우저 탭 / 홈 화면 아이콘 (웨티아빠 공식 컬러 심벌) -->
-<link rel="icon" type="image/png" sizes="32x32" href="favicon.png?v=3">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=3">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon.png?v=4">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=4">
 <meta name="theme-color" content="#cdeffd">
 
 <link rel="stylesheet" href="style.css">
@@ -46,12 +46,16 @@
 
     <button id="startBtn" class="bigBtn startBtn">🏁 바로 시작</button>
 
-    <button id="settingsSummary" class="settingsSummary" aria-expanded="false" aria-controls="settingsPanel">
-      <span id="settingsSummaryText"></span>
-      <span class="settingsSummaryEdit">⚙️ 설정 바꾸기 ▾</span>
-    </button>
+    <p id="settingsSummaryText" class="settingsSummaryLine"></p>
 
-    <div id="settingsPanel" class="settingsPanel hidden">
+    <!-- 설정과 게임 방법을 나란히 둔다. 둘 다 접힌 채로 시작하고, 하나를 열면 다른 하나는 닫힌다.
+         첫 화면에서 가장 큰 것은 "바로 시작"이어야 한다. -->
+    <div class="panelToggles">
+      <button id="settingsBtn" class="panelToggle" aria-expanded="false" aria-controls="settingsPanel">⚙️ 설정 바꾸기 ▾</button>
+      <button id="howtoBtn" class="panelToggle" aria-expanded="false" aria-controls="howtoPanel">❓ 게임 방법 ▾</button>
+    </div>
+
+    <div id="settingsPanel" class="startPanel hidden">
       <div class="settingsGroup">
         <h3>🗺️ 트랙</h3>
         <div id="mapList"></div>
@@ -76,73 +80,66 @@
       <button id="startBtnInPanel" class="bigBtn startBtn">🏁 이 설정으로 바로 시작</button>
     </div>
 
-    <button id="howtoBtn" class="linkBtn">❓ 게임 방법</button>
+    <div id="howtoPanel" class="startPanel hidden">
+      <h2 class="panelTitle">이렇게 진행돼요</h2>
+    <div class="tutorialGrid">
+      <div class="tutorialCard">
+        <div class="tutorialIcon">🏁</div>
+        <div class="tutorialText"><b>목표</b><br>트랙을 3바퀴 돌아 가장 먼저 결승선을 통과하세요. 트랙에는 곡선 구간도 있어요.</div>
+      </div>
+      <div class="tutorialCard">
+        <div class="tutorialIcon">🕹️</div>
+        <div class="tutorialText"><b>조작</b><br>← → (또는 A / D)로 좌우 이동. 아래 <b>아이템 칸</b>을 누르면 그 아이템을 써요 (스페이스바는 맨 왼쪽 칸).</div>
+      </div>
+      <div class="tutorialCard">
+        <div class="tutorialIcon">❔</div>
+        <div class="tutorialText"><b>물음표 상자</b><br>지나가면 아이템을 하나 얻어요. <b>최대 3개</b>까지 모아둘 수 있어요.</div>
+      </div>
+      <div class="tutorialCard">
+        <div class="tutorialIcon">✖️</div>
+        <div class="tutorialText"><b>× 상자</b><br>곱셈 문제가 나와요. <span class="good">정답이면 부스터</span>로 빨라지고, <span class="bad">오답이면 크게 느려져요</span>. 정답을 잘 맞혀야 이길 수 있어요!</div>
+      </div>
+      <div class="tutorialCard">
+        <div class="tutorialIcon">🍌</div>
+        <div class="tutorialText"><b>바나나</b><br>내 뒤에 떨어뜨려서 뒤따라오는 상대를 미끄러지게 해요.</div>
+      </div>
+      <div class="tutorialCard">
+        <div class="tutorialIcon">🚀</div>
+        <div class="tutorialText"><b>로켓</b><br>가장 가까운 상대를 조준해서 날려 잠깐 멈추게 해요. 앞차가 아니어도 맞아요.</div>
+      </div>
+      <div class="tutorialCard">
+        <div class="tutorialIcon">🛡️</div>
+        <div class="tutorialText"><b>방패</b><br>충돌·바나나·로켓·번개·폭탄·막대사탕 공격을 한 번 막아줘요.</div>
+      </div>
+      <div class="tutorialCard">
+        <div class="tutorialIcon">⚡</div>
+        <div class="tutorialText"><b>번개</b><br>현재 1등을 잠깐 느리게 만들어요. 화면이 살짝 번쩍여요.</div>
+      </div>
+      <div class="tutorialCard">
+        <div class="tutorialIcon">💣</div>
+        <div class="tutorialText"><b>폭탄</b><br>내 주변에 있는 상대를 한꺼번에 느리게 만들어요.</div>
+      </div>
+      <div class="tutorialCard">
+        <div class="tutorialIcon">🍬</div>
+        <div class="tutorialText"><b>왕사탕</b><br>잠깐 커져서 부딪힌 상대를 옆으로 밀어내요. 빨라지지는 않아요.</div>
+      </div>
+      <div class="tutorialCard">
+        <div class="tutorialIcon">🗺️</div>
+        <div class="tutorialText"><b>트랙 선택</b><br>햇살 공원 · 사탕 마을 · 우주 정거장 중에서 트랙을 고를 수 있어요. 사탕 마을은 시럽·회전 막대사탕을, 우주 정거장은 좁은 다리·점프 구간을 조심하세요!</div>
+      </div>
+      <div class="tutorialCard">
+        <div class="tutorialIcon">🐢🔥</div>
+        <div class="tutorialText"><b>이지 / 하드 모드</b><br>이지모드는 곱셈 시간을 여유롭게, 하드모드는 빠르게 답해야 해요.</div>
+      </div>
+      <div class="tutorialCard">
+        <div class="tutorialIcon">📱</div>
+        <div class="tutorialText"><b>모바일 조작</b><br>화면 아래 ◀ ▶ 버튼으로 이동하고, 가운데 아이템 칸을 눌러 아이템을 써요.</div>
+      </div>
+    </div>
+    </div>
 
     <p class="blogFooter">✍️ <a href="https://blog.naver.com/wetipapa" target="_blank" rel="noopener">웨티아빠 블로그</a> 놀러가기</p>
   </section>
-
-  <!-- 게임 방법: 원할 때만 여는 오버레이(모달). 첫 방문에 강제로 뜨지 않는다 -->
-  <div id="howtoModal" class="modalOverlay hidden">
-    <div class="modalCard" role="dialog" aria-modal="true" aria-labelledby="howtoTitle">
-      <button id="howtoCloseBtn" class="modalCloseBtn" aria-label="닫기">✕</button>
-      <h2 id="howtoTitle">이렇게 진행돼요</h2>
-      <div class="tutorialGrid">
-        <div class="tutorialCard">
-          <div class="tutorialIcon">🏁</div>
-          <div class="tutorialText"><b>목표</b><br>트랙을 3바퀴 돌아 가장 먼저 결승선을 통과하세요. 트랙에는 곡선 구간도 있어요.</div>
-        </div>
-        <div class="tutorialCard">
-          <div class="tutorialIcon">🕹️</div>
-          <div class="tutorialText"><b>조작</b><br>← → (또는 A / D)로 좌우 이동. 아래 <b>아이템 칸</b>을 누르면 그 아이템을 써요 (스페이스바는 맨 왼쪽 칸).</div>
-        </div>
-        <div class="tutorialCard">
-          <div class="tutorialIcon">❔</div>
-          <div class="tutorialText"><b>물음표 상자</b><br>지나가면 아이템을 하나 얻어요. <b>최대 3개</b>까지 모아둘 수 있어요.</div>
-        </div>
-        <div class="tutorialCard">
-          <div class="tutorialIcon">✖️</div>
-          <div class="tutorialText"><b>× 상자</b><br>곱셈 문제가 나와요. <span class="good">정답이면 부스터</span>로 빨라지고, <span class="bad">오답이면 크게 느려져요</span>. 정답을 잘 맞혀야 이길 수 있어요!</div>
-        </div>
-        <div class="tutorialCard">
-          <div class="tutorialIcon">🍌</div>
-          <div class="tutorialText"><b>바나나</b><br>내 뒤에 떨어뜨려서 뒤따라오는 상대를 미끄러지게 해요.</div>
-        </div>
-        <div class="tutorialCard">
-          <div class="tutorialIcon">🚀</div>
-          <div class="tutorialText"><b>로켓</b><br>가장 가까운 상대를 조준해서 날려 잠깐 멈추게 해요. 앞차가 아니어도 맞아요.</div>
-        </div>
-        <div class="tutorialCard">
-          <div class="tutorialIcon">🛡️</div>
-          <div class="tutorialText"><b>방패</b><br>충돌·바나나·로켓·번개·폭탄·막대사탕 공격을 한 번 막아줘요.</div>
-        </div>
-        <div class="tutorialCard">
-          <div class="tutorialIcon">⚡</div>
-          <div class="tutorialText"><b>번개</b><br>현재 1등을 잠깐 느리게 만들어요. 화면이 살짝 번쩍여요.</div>
-        </div>
-        <div class="tutorialCard">
-          <div class="tutorialIcon">💣</div>
-          <div class="tutorialText"><b>폭탄</b><br>내 주변에 있는 상대를 한꺼번에 느리게 만들어요.</div>
-        </div>
-        <div class="tutorialCard">
-          <div class="tutorialIcon">🍬</div>
-          <div class="tutorialText"><b>왕사탕</b><br>잠깐 커져서 부딪힌 상대를 옆으로 밀어내요. 빨라지지는 않아요.</div>
-        </div>
-        <div class="tutorialCard">
-          <div class="tutorialIcon">🗺️</div>
-          <div class="tutorialText"><b>트랙 선택</b><br>햇살 공원 · 사탕 마을 · 우주 정거장 중에서 트랙을 고를 수 있어요. 사탕 마을은 시럽·회전 막대사탕을, 우주 정거장은 좁은 다리·점프 구간을 조심하세요!</div>
-        </div>
-        <div class="tutorialCard">
-          <div class="tutorialIcon">🐢🔥</div>
-          <div class="tutorialText"><b>이지 / 하드 모드</b><br>이지모드는 곱셈 시간을 여유롭게, 하드모드는 빠르게 답해야 해요.</div>
-        </div>
-        <div class="tutorialCard">
-          <div class="tutorialIcon">📱</div>
-          <div class="tutorialText"><b>모바일 조작</b><br>화면 아래 ◀ ▶ 버튼으로 이동하고, 가운데 아이템 칸을 눌러 아이템을 써요.</div>
-        </div>
-      </div>
-      <button id="howtoCloseBtn2" class="bigBtn secondaryBtn">닫기</button>
-    </div>
-  </div>
 
   <!-- 레이싱 화면 -->
   <section id="raceScreen" class="screen hidden">
