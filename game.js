@@ -16,13 +16,30 @@ const CHARACTERS = [
   { id:"prof",   name:"교수",     color:"#ff9f1c", desc:"곱셈 문제 제한시간이 1초 더 김",            speedMul:1.00, turnMul:1.00, collisionMul:1.0, itemLuck:1.0, timeBonus:1 },
 ];
 
-const DIFFICULTIES = [
+/* 구구단은 2~9단을 개별로 켜고 끈다. 아이마다 막히는 단이 달라서(3단은 되는데 7단만
+   안 되는 식) 묶음만 고를 수 있으면 원하는 조합을 만들 수 없다.
+   아래 목록은 자주 쓰는 조합을 한 번에 고르는 단축 버튼이다. */
+const ALL_TABLES = [2,3,4,5,6,7,8,9];
+
+const TABLE_PRESETS = [
   { id:"2-3", label:"2 · 3단", tables:[2,3] },
   { id:"4-5", label:"4 · 5단", tables:[4,5] },
   { id:"6-7", label:"6 · 7단", tables:[6,7] },
   { id:"8-9", label:"8 · 9단", tables:[8,9] },
-  { id:"all", label:"전체(2~9단)", tables:[2,3,4,5,6,7,8,9] },
+  { id:"all", label:"전체", tables:[2,3,4,5,6,7,8,9] },
 ];
+
+/* 고른 단을 요약 줄에 보여줄 짧은 문구로 만든다 */
+function tablesLabel(tables) {
+  const t = [...tables].sort((a,b) => a-b);
+  if (t.length === 0) return "-";
+  if (t.length === ALL_TABLES.length) return "전체";
+  const preset = TABLE_PRESETS.find(p => p.tables.length === t.length && p.tables.every((x,i) => x === t[i]));
+  if (preset) return preset.label;
+  const isRun = t.every((x,i) => i === 0 || x === t[i-1] + 1);
+  if (isRun && t.length >= 3) return `${t[0]}~${t[t.length-1]}단`;
+  return t.join("·") + "단";
+}
 
 const MODES = [
   { id:"easy", label:"🐢 이지모드", short:"🐢 이지", desc:"곱셈 문제를 여유롭게 풀 수 있어요", timeLimited:false },
@@ -323,7 +340,7 @@ const BOX_PICKUP_RANGE = 11;   // 상자 간격(20)의 절반보다 살짝 넉�
 /* ---------- 전역 상태 ---------- */
 // 첫 방문 기본값: 햇살 공원 · 코멧 · 2·3단 · 이지모드 (한 번만 눌러도 바로 시작할 수 있게)
 let selectedCharId = "comet";
-let selectedDiffId = "2-3";
+let selectedTables = [2,3];
 let selectedModeId = "easy";
 let selectedMapId = "sunny";
 
@@ -339,7 +356,14 @@ function loadSavedSettings() {
     const saved = JSON.parse(raw);
     if (saved && MAPS.some(m => m.id === saved.mapId)) selectedMapId = saved.mapId;
     if (saved && CHARACTERS.some(c => c.id === saved.charId)) selectedCharId = saved.charId;
-    if (saved && DIFFICULTIES.some(d => d.id === saved.diffId)) selectedDiffId = saved.diffId;
+    // 구구단: 예전 판은 묶음 id 하나(diffId)로 저장했다. 그 값이 남아 있으면 단 목록으로 바꿔 준다.
+    if (saved && Array.isArray(saved.tables)) {
+      const t = saved.tables.filter(x => ALL_TABLES.includes(x));
+      if (t.length > 0) selectedTables = t;
+    } else if (saved && saved.diffId) {
+      const preset = TABLE_PRESETS.find(p => p.id === saved.diffId);
+      if (preset) selectedTables = [...preset.tables];
+    }
     if (saved && MODES.some(m => m.id === saved.modeId)) selectedModeId = saved.modeId;
   } catch (e) { /* localStorage를 못 쓰는 환경이면 그냥 기본값으로 진행 */ }
 }
@@ -347,7 +371,7 @@ function loadSavedSettings() {
 function saveSettings() {
   try {
     localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify({
-      mapId: selectedMapId, charId: selectedCharId, diffId: selectedDiffId, modeId: selectedModeId,
+      mapId: selectedMapId, charId: selectedCharId, tables: selectedTables, modeId: selectedModeId,
     }));
   } catch (e) { /* 저장이 안 되도 플레이에는 지장 없게 무시 */ }
 }
@@ -446,10 +470,54 @@ function updateCharDescLine() {
 function updateSettingsSummary() {
   const map = MAPS.find(m => m.id === selectedMapId) || MAPS[0];
   const ch = CHARACTERS.find(c => c.id === selectedCharId) || CHARACTERS[0];
-  const diff = DIFFICULTIES.find(d => d.id === selectedDiffId) || DIFFICULTIES[0];
   const mode = MODES.find(m => m.id === selectedModeId) || MODES[0];
   document.getElementById("settingsSummaryText").innerHTML =
-    `${map.emoji} ${map.name} · <span class="dot" style="background:${ch.color}"></span> ${ch.name} · ${diff.label} · ${mode.short}`;
+    `${map.emoji} ${map.name} · <span class="dot" style="background:${ch.color}"></span> ${ch.name} · ${tablesLabel(selectedTables)} · ${mode.short}`;
+}
+
+/* 2~9단 개별 선택 + 자주 쓰는 조합 단축 버튼.
+   전부 끄면 낼 문제가 없어지므로 마지막 하나는 꺼지지 않게 막는다. */
+function buildTablePicker(container) {
+  container.innerHTML = "";
+
+  const grid = document.createElement("div");
+  grid.className = "tableGrid";
+  ALL_TABLES.forEach(t => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "tableChip" + (selectedTables.includes(t) ? " selected" : "");
+    btn.textContent = t + "단";
+    btn.setAttribute("aria-pressed", selectedTables.includes(t) ? "true" : "false");
+    btn.addEventListener("click", () => {
+      const next = selectedTables.includes(t)
+        ? selectedTables.filter(x => x !== t)
+        : [...selectedTables, t];
+      if (next.length === 0) return;
+      selectedTables = next.sort((a,b) => a-b);
+      buildTablePicker(container);
+      updateSettingsSummary();
+      saveSettings();
+    });
+    grid.appendChild(btn);
+  });
+  container.appendChild(grid);
+
+  const presets = document.createElement("div");
+  presets.className = "tablePresets";
+  TABLE_PRESETS.forEach(p => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "tablePreset";
+    btn.textContent = p.label;
+    btn.addEventListener("click", () => {
+      selectedTables = [...p.tables];
+      buildTablePicker(container);
+      updateSettingsSummary();
+      saveSettings();
+    });
+    presets.appendChild(btn);
+  });
+  container.appendChild(presets);
 }
 
 function buildStartScreen() {
@@ -489,20 +557,7 @@ function buildStartScreen() {
   });
   updateCharDescLine();
 
-  DIFFICULTIES.forEach(d => {
-    const card = document.createElement("div");
-    card.className = "diffCard" + (d.id === selectedDiffId ? " selected" : "");
-    card.dataset.id = d.id;
-    card.innerHTML = `<div class="charName">${d.label}</div>`;
-    card.addEventListener("click", () => {
-      selectedDiffId = d.id;
-      [...diffListEl.children].forEach(c => c.classList.remove("selected"));
-      card.classList.add("selected");
-      updateSettingsSummary();
-      saveSettings();
-    });
-    diffListEl.appendChild(card);
-  });
+  buildTablePicker(diffListEl);
 
   MODES.forEach(m => {
     const card = document.createElement("div");
@@ -592,7 +647,6 @@ function shuffled(arr) {
 }
 
 function startRace() {
-  const diff = DIFFICULTIES.find(d => d.id === selectedDiffId);
   const playerChar = CHARACTERS.find(c => c.id === selectedCharId);
   const map = MAPS.find(m => m.id === selectedMapId) || MAPS[0];
   applyMap(map);
@@ -642,7 +696,7 @@ function startRace() {
   mathPopupActive = false;
   raceEnding = false;
   finishOrderCounter = 0;
-  currentDifficulty = diff;
+  currentTables = [...selectedTables];
   currentMode = MODES.find(m => m.id === selectedModeId);
 
   updateItemUI();
@@ -665,7 +719,7 @@ function applyMapTheme(map) {
   wrap.style.borderColor = map.theme.wrapBorder;
 }
 
-let currentDifficulty = DIFFICULTIES[0];
+let currentTables = [2,3];
 let currentMode = MODES.find(m => m.id === selectedModeId);
 
 /* ============================================================
@@ -1254,7 +1308,7 @@ function useItemInput(slot) {
 
 /* ---------- 곱셈 문제 ---------- */
 function generateQuestion() {
-  const tables = currentDifficulty.tables;
+  const tables = currentTables;
   const a = tables[Math.floor(Math.random() * tables.length)];
   const b = 1 + Math.floor(Math.random() * 9);
   const correct = a * b;

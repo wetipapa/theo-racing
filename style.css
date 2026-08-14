@@ -152,10 +152,18 @@ h2 { font-size: 1.3rem; text-align: center; margin: 14px 0 8px; color: #2b6cb0; 
 }
 .linkBtn:active { transform: scale(0.97); }
 
-#mapList, #charList, #diffList, #modeList {
+#mapList, #charList, #modeList {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 10px;
+  padding: 0 8px;
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+/* 구구단은 칩이 작아서 다른 목록과 같은 격자를 쓰면 "2단"이 두 줄로 쪼개진다.
+   자기 폭을 다 쓰게 두고 칩 격자는 안에서 따로 잡는다. */
+#diffList {
   padding: 0 8px;
   max-width: 560px;
   margin: 0 auto;
@@ -462,3 +470,48 @@ h2 { font-size: 1.3rem; text-align: center; margin: 14px 0 8px; color: #2b6cb0; 
   .tagline { margin-bottom: 4px; }
   .startBtn { padding: 12px 28px; margin: 6px 8px 4px; }
 }
+
+/* 구구단 개별 선택 — 2~9단을 하나씩 켜고 끈다 */
+.tableGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.tableChip {
+  border: 4px solid #ddd;
+  background: #fff;
+  border-radius: 14px;
+  padding: 12px 2px;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #7a6a55;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform 0.1s;
+  font-family: inherit;
+}
+.tableChip:active { transform: scale(0.94); }
+.tableChip.selected {
+  border-color: #ffb703;
+  background: #ffb703;
+  color: #fff;
+}
+
+.tablePresets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.tablePreset {
+  border: 3px solid #e7dcc6;
+  background: #fff6e0;
+  border-radius: 10px;
+  padding: 7px 10px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #8a7558;
+  cursor: pointer;
+  font-family: inherit;
+}
+.tablePreset:active { transform: scale(0.95); }
