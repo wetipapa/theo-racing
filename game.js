@@ -119,7 +119,7 @@ const MAPS = [
     ],
     hazards: [
       { fracStart:0.60, fracEnd:0.665, safeHalf:16, kind:"bridge" },
-      { fracStart:0.84, fracEnd:0.90,  safeHalf:20, kind:"jump" },
+      { fracStart:0.84, fracEnd:0.90,  kind:"fork", laneCenter:22, laneHalf:11 },
     ],
     checkpoints: [0, 0.30, 0.55, 0.78],
     decorations: [
@@ -625,6 +625,7 @@ function startRace() {
 
   hazards = (map.hazards || []).map(h => ({
     kind: h.kind, safeHalf: h.safeHalf,
+    laneCenter: h.laneCenter, laneHalf: h.laneHalf,
     sStart: h.fracStart * TRACK.L, sEnd: h.fracEnd * TRACK.L,
   }));
   obstacles = {
@@ -1017,13 +1018,29 @@ function checkLollipopHit(car) {
 }
 
 /* ---------- 우주 정거장 낙하 ---------- */
+/* hazard에서 "밟고 지나갈 수 있는 길"을 오프셋 구간 [min,max] 배열로 돌려준다(오름차순).
+   그리기(drawHazardZones)와 낙하 판정(checkHazardFall)이 둘 다 이 함수 하나만 보게 해서
+   화면에 보이는 길과 실제 판정이 절대 어긋나지 않게 한다.
+   (예전에는 양쪽이 각자 폭을 계산해서, 길이 통째로 지워져 보이는 구간을 가운데로 지나가면
+   멀쩡히 통과되는 문제가 있었다.)
+   - bridge: 가운데 좁은 다리 하나
+   - fork:   가운데를 비우고 좌우로 갈라지는 좁은 길 두 개 */
+function hazardSafeBands(hz) {
+  if (hz.kind === "fork") {
+    const inner = hz.laneCenter - hz.laneHalf, outer = hz.laneCenter + hz.laneHalf;
+    return [[-outer, -inner], [inner, outer]];
+  }
+  return [[-hz.safeHalf, hz.safeHalf]];
+}
+
 // 부스터로도 낙하는 막지 못한다. 자동주행(곱셈 문제 풀이) 중과 낙하 직후 보호시간 동안만 안전하다.
 function checkHazardFall(car) {
   if (car.autopilot || car.falling || car.hitProtTimer > 0 || car.finished) return;
   hazards.forEach(hz => {
     if (car.falling) return;
-    if (car.s >= hz.sStart && car.s < hz.sEnd && Math.abs(car.offset) > hz.safeHalf) {
-      triggerFall(car);
+    if (car.s >= hz.sStart && car.s < hz.sEnd) {
+      const onRoad = hazardSafeBands(hz).some(([lo, hi]) => car.offset >= lo && car.offset <= hi);
+      if (!onRoad) triggerFall(car);
     }
   });
 }
@@ -1065,15 +1082,26 @@ function showHintBanner(text) {
 }
 
 /* ---------- AI 회피(낙하 구간 / 회전 막대사탕) ----------
-   AI는 위험 구간이 가까워지면 대부분 중앙 쪽으로 피하려 하지만, 매번 다가올 때마다 확률을 새로
+   AI는 위험 구간이 가까워지면 대부분 안전한 길로 피하려 하지만, 매번 다가올 때마다 확률을 새로
    뽑아서 가끔은 그대로 지나가게 한다(완벽한 주행 방지). 지나가면 판정을 초기화해서 다음 바퀴에
    다시 시도하게 만든다. */
+// hazard를 피할 때 노릴 오프셋. 안전 구간(hazardSafeBands) 중 지금 위치에서 가장 가까운 길의
+// 한가운데를 고른다. 양갈래(fork)에서는 차마다 가까운 쪽 길로 갈라져서 자연스럽게 나뉜다.
+// (가운데가 낭떠러지인 fork에서 예전처럼 0을 노리면 AI가 전부 떨어진다.)
+function hazardAvoidOffset(hz, car) {
+  let best = 0, bestDist = Infinity;
+  hazardSafeBands(hz).forEach(([lo, hi]) => {
+    const mid = (lo + hi) / 2, d = Math.abs(car.offset - mid);
+    if (d < bestDist) { bestDist = d; best = mid; }
+  });
+  return best;
+}
 function aiAvoidTarget(car) {
   for (let i = 0; i < hazards.length; i++) {
     const hz = hazards[i], key = "hz" + i;
     if (car.s > hz.sStart - AI_AVOID_LOOKAHEAD && car.s < hz.sEnd) {
       if (car.avoidRolls[key] === undefined) car.avoidRolls[key] = Math.random() < 0.93;
-      return car.avoidRolls[key] ? 0 : car.laneOffset;
+      return car.avoidRolls[key] ? hazardAvoidOffset(hz, car) : car.laneOffset;
     } else if (car.avoidRolls[key] !== undefined) {
       delete car.avoidRolls[key];
     }
@@ -1482,16 +1510,19 @@ function drawObstacles() {
   });
 }
 
-// 우주 정거장의 좁은 다리/점프 구간을 도로 위에 "잘려나간" 것처럼 표현한다
+/* 우주 정거장의 좁은 다리/양갈래 구간을 도로 위에 "잘려나간" 것처럼 표현한다.
+   hazardSafeBands()가 돌려준 안전 구간만 남기고 나머지를 전부 배경색으로 덮는 방식이라,
+   길 모양을 바꾸려면 hazardSafeBands()만 고치면 그리기와 판정이 함께 따라온다. */
 function drawHazardZones() {
+  const edge = TRACK.halfWidth + 6; // 도로 폭보다 살짝 넓게 덮어서 가장자리가 남지 않게 한다
   hazards.forEach(hz => {
     const bg = currentMap.theme.bg;
-    if (hz.kind === "bridge") {
-      drawZoneCutaway(hz.sStart, hz.sEnd, hz.safeHalf, TRACK.halfWidth + 6, bg);
-      drawZoneCutaway(hz.sStart, hz.sEnd, -TRACK.halfWidth - 6, -hz.safeHalf, bg);
-    } else {
-      drawZoneCutaway(hz.sStart, hz.sEnd, -TRACK.halfWidth - 6, TRACK.halfWidth + 6, bg);
-    }
+    let cursor = -edge;
+    hazardSafeBands(hz).forEach(([lo, hi]) => {
+      if (lo > cursor) drawZoneCutaway(hz.sStart, hz.sEnd, cursor, lo, bg);
+      cursor = Math.max(cursor, hi);
+    });
+    if (cursor < edge) drawZoneCutaway(hz.sStart, hz.sEnd, cursor, edge, bg);
   });
 }
 function drawZoneCutaway(sStart, sEnd, offA, offB, color) {
