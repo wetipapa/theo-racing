@@ -45,7 +45,7 @@ html, body {
 .hidden { display: none !important; }
 
 h1 { font-size: 2.1rem; text-align: center; color: var(--rc-accent); margin: 6px 0 2px; letter-spacing: -0.01em; }
-h2 { font-size: 1.3rem; text-align: center; margin: 14px 0 8px; color: #2b6cb0; }
+h2 { font-size: 1.3rem; text-align: center; margin: 14px 0 8px; color: var(--rc-accent-deep); }
 
 /* ---------- 게임 방법(모달) ---------- */
 .modalOverlay {
@@ -103,28 +103,30 @@ h2 { font-size: 1.3rem; text-align: center; margin: 14px 0 8px; color: #2b6cb0; 
 }
 .tutorialIcon { font-size: 1.8rem; flex: 0 0 auto; width: 36px; text-align: center; }
 .tutorialText { font-size: 0.95rem; line-height: 1.4; word-break: keep-all; overflow-wrap: normal; }
-.tutorialText b { color: #2b6cb0; }
+.tutorialText b { color: var(--rc-accent-deep); }
 .tutorialText .good { color: #1a8f4c; font-weight: bold; }
 .tutorialText .bad { color: #c73e39; font-weight: bold; }
 
 /* ---------- 시작 화면 ---------- */
-#startScreen { width: 100%; text-align: center; }
+/* 형제 서비스(구구단 팡팡)와 같은 첫 화면 골격.
+   내용을 위에 몰아붙이지 않고 세로 가운데에 놓아, 위아래로 여백이 벌어지게 한다. */
+#startScreen {
+  width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  padding: 24px 0;
+  text-align: center;
+}
+#startScreen > * { margin-left: auto; margin-right: auto; }
 
 .tagline { font-size: 1.05rem; color: var(--rc-ink-soft); font-weight: bold; margin: 0 0 6px; }
 
 /* "바로 시작"이 첫 화면에서 가장 강한 CTA가 되도록, 다른 버튼보다 크게 만든다 */
-.startBtn { font-size: 1.6rem; padding: 18px 40px; margin: 10px 8px; }
-
-/* 현재 설정을 알려주는 한 줄. 누르는 것이 아니라 읽는 것이라 버튼에서 분리했다. */
-.settingsSummaryLine {
-  max-width: 420px;
-  margin: 8px auto 12px;
-  font-size: 0.95rem;
-  font-weight: bold;
-  color: var(--rc-ink-soft);
-  word-break: keep-all;
-  overflow-wrap: normal;
-}
+.startBtn { font-size: 1.6rem; padding: 18px 40px; margin: 6px 8px 2px; }
 
 /* 설정 바꾸기 / 게임 방법 — 나란한 보조 버튼 두 개 */
 .panelToggles {
@@ -169,9 +171,9 @@ h2 { font-size: 1.3rem; text-align: center; margin: 14px 0 8px; color: #2b6cb0; 
   padding: 14px 8px 4px;
   border-top: 3px dashed #cfd8e3;
 }
-.panelTitle { font-size: 1.15rem; margin: 0 0 12px; color: #2b6cb0; }
+.panelTitle { font-size: 1.15rem; margin: 0 0 12px; color: var(--rc-accent-deep); }
 .settingsGroup { margin-bottom: 14px; }
-.settingsGroup h3 { font-size: 1.05rem; margin: 0 0 8px; color: #2b6cb0; }
+.settingsGroup h3 { font-size: 1.05rem; margin: 0 0 8px; color: var(--rc-accent-deep); }
 .settingsHint {
   font-size: 0.85rem;
   color: #555;
@@ -224,7 +226,7 @@ h2 { font-size: 1.3rem; text-align: center; margin: 14px 0 8px; color: #2b6cb0; 
   transition: transform 0.1s;
 }
 .charCard:active, .diffCard:active { transform: scale(0.96); }
-.charCard.selected, .diffCard.selected { border-color: #ffb703; background: #fff6e0; }
+.charCard.selected, .diffCard.selected { border-color: var(--rc-accent); background: var(--rc-cream-deep); }
 
 .charSwatch {
   width: 36px; height: 36px;
@@ -252,9 +254,9 @@ h2 { font-size: 1.3rem; text-align: center; margin: 14px 0 8px; color: #2b6cb0; 
 .secondaryBtn { background: #4c7fe0; box-shadow: 0 5px 0 #33579c; }
 .secondaryBtn:active { box-shadow: 0 2px 0 #33579c; }
 
-.blogFooter { font-size: 0.9rem; margin: 18px auto 4px; color: var(--rc-ink-soft); }
-.blogFooter a { color: var(--rc-accent-deep); font-weight: bold; text-decoration: none; }
-.blogFooter a:hover, .blogFooter a:active { text-decoration: underline; }
+.blogFooter { font-size: 0.8rem; font-weight: bold; margin: 10px auto 4px; color: var(--rc-ink-soft); }
+.blogFooter a { color: inherit; font-weight: bold; text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 2px; }
+.blogFooter a:hover, .blogFooter a:active { color: var(--rc-ink); }
 
 /* ---------- 레이싱 화면 ---------- */
 #raceScreen { width: 100%; background: var(--rc-sky); }
@@ -537,8 +539,8 @@ h2 { font-size: 1.3rem; text-align: center; margin: 14px 0 8px; color: #2b6cb0; 
 }
 .tableChip:active { transform: scale(0.94); }
 .tableChip.selected {
-  border-color: #ffb703;
-  background: #ffb703;
+  border-color: var(--rc-accent);
+  background: var(--rc-accent);
   color: #fff;
 }
 
@@ -549,8 +551,8 @@ h2 { font-size: 1.3rem; text-align: center; margin: 14px 0 8px; color: #2b6cb0; 
   margin-top: 8px;
 }
 .tablePreset {
-  border: 3px solid #e7dcc6;
-  background: #fff6e0;
+  border: 3px solid var(--rc-line);
+  background: var(--rc-cream-deep);
   border-radius: 10px;
   padding: 7px 10px;
   font-size: 0.82rem;

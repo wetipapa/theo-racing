@@ -36,48 +36,49 @@
 <body>
 <div id="app">
 
-  <!-- 시작 화면: 위에서부터 제목 → 한줄 설명 → 바로 시작 → 설정 요약 → 설정 바꾸기 → 게임 방법 순서 -->
+  <!-- 시작 화면. 형제 서비스(구구단 팡팡)와 같은 골격이다:
+       제목 → 한 줄 설명 → 그림 → 바로 시작 → 접힌 보조 버튼 두 개 → 블로그 링크.
+       현재 고른 설정을 늘어놓지 않는다 — 기본값으로 바로 시작하면 되고,
+       고르고 싶을 때만 펼쳐 보면 된다. -->
   <section id="startScreen" class="screen hidden">
-    <h1>🏎️ 웨티 레이싱</h1>
+    <h1>웨티 레이싱</h1>
     <p class="tagline">문제를 맞히고 부스터로 역전하세요!</p>
 
     <!-- 카트를 모는 웨티. 브랜드 확정 자산(brand-assets/confirmed/character-scenes)에서 가져왔다. -->
     <img id="heroImage" src="weti-kart.png" alt="카트를 몰고 있는 웨티" width="458" height="560" />
 
-    <button id="startBtn" class="bigBtn startBtn">🏁 바로 시작</button>
-
-    <p id="settingsSummaryText" class="settingsSummaryLine"></p>
+    <button id="startBtn" class="bigBtn startBtn">바로 시작</button>
 
     <!-- 설정과 게임 방법을 나란히 둔다. 둘 다 접힌 채로 시작하고, 하나를 열면 다른 하나는 닫힌다.
          첫 화면에서 가장 큰 것은 "바로 시작"이어야 한다. -->
     <div class="panelToggles">
-      <button id="settingsBtn" class="panelToggle" aria-expanded="false" aria-controls="settingsPanel">⚙️ 설정 바꾸기 ▾</button>
-      <button id="howtoBtn" class="panelToggle" aria-expanded="false" aria-controls="howtoPanel">❓ 게임 방법 ▾</button>
+      <button id="settingsBtn" class="panelToggle" aria-expanded="false" aria-controls="settingsPanel">설정 바꾸기 ▾</button>
+      <button id="howtoBtn" class="panelToggle" aria-expanded="false" aria-controls="howtoPanel">게임 방법 ▾</button>
     </div>
 
     <div id="settingsPanel" class="startPanel hidden">
       <div class="settingsGroup">
-        <h3>🗺️ 트랙</h3>
+        <h3>트랙</h3>
         <div id="mapList"></div>
       </div>
 
       <div class="settingsGroup">
-        <h3>🚗 캐릭터</h3>
+        <h3>캐릭터</h3>
         <div id="charList"></div>
         <p id="charDescLine" class="settingsHint"></p>
       </div>
 
       <div class="settingsGroup">
-        <h3>✖️ 구구단</h3>
+        <h3>구구단</h3>
         <div id="diffList"></div>
       </div>
 
       <div class="settingsGroup">
-        <h3>🎮 모드</h3>
+        <h3>모드</h3>
         <div id="modeList"></div>
       </div>
 
-      <button id="startBtnInPanel" class="bigBtn startBtn">🏁 이 설정으로 바로 시작</button>
+      <button id="startBtnInPanel" class="bigBtn startBtn">이 설정으로 시작</button>
     </div>
 
     <div id="howtoPanel" class="startPanel hidden">
@@ -138,7 +139,7 @@
     </div>
     </div>
 
-    <p class="blogFooter">✍️ <a href="https://blog.naver.com/wetipapa" target="_blank" rel="noopener">웨티아빠 블로그</a> 놀러가기</p>
+    <p class="blogFooter"><a href="https://blog.naver.com/wetipapa" target="_blank" rel="noopener">✍️ 웨티아빠 블로그</a>에서 더 많은 학습 자료를 만나요</p>
   </section>
 
   <!-- 레이싱 화면 -->
@@ -184,7 +185,7 @@
 
   <!-- 결과 화면 -->
   <section id="resultScreen" class="screen hidden">
-    <h1 id="resultTitle">🏁 경기 결과</h1>
+    <h1 id="resultTitle">경기 결과</h1>
     <p id="resultRank" class="resultLine"></p>
     <p id="resultScore" class="resultLine"></p>
     <div id="wrongWrap">
@@ -192,10 +193,10 @@
       <div id="wrongList"></div>
     </div>
     <button id="retryBtn" class="bigBtn">🔁 같은 설정으로 다시 하기</button>
-    <button id="retrySettingsBtn" class="bigBtn secondaryBtn">⚙️ 설정 바꾸고 다시 하기</button>
+    <button id="retrySettingsBtn" class="bigBtn secondaryBtn">설정 바꾸고 다시 하기</button>
     <button id="homeBtn" class="linkBtn">🏠 처음으로</button>
 
-    <p class="blogFooter">✍️ <a href="https://blog.naver.com/wetipapa" target="_blank" rel="noopener">웨티아빠 블로그</a> 놀러가기</p>
+    <p class="blogFooter"><a href="https://blog.naver.com/wetipapa" target="_blank" rel="noopener">✍️ 웨티아빠 블로그</a>에서 더 많은 학습 자료를 만나요</p>
   </section>
 
 </div>

@@ -42,8 +42,8 @@ function tablesLabel(tables) {
 }
 
 const MODES = [
-  { id:"easy", label:"🐢 이지모드", short:"🐢 이지", desc:"곱셈 문제를 여유롭게 풀 수 있어요", timeLimited:false },
-  { id:"hard", label:"🔥 하드모드", short:"🔥 하드", desc:"곱셈 문제 시간제한 있음 (기존 방식)", timeLimited:true },
+  { id:"easy", label:"이지모드", short:"이지", desc:"곱셈 문제를 여유롭게 풀 수 있어요", timeLimited:false },
+  { id:"hard", label:"하드모드", short:"하드", desc:"곱셈 문제를 정해진 시간 안에 풀어야 해요", timeLimited:true },
 ];
 
 /* ---------- 맵(트랙) 정의 ----------
@@ -467,13 +467,6 @@ function updateCharDescLine() {
 }
 
 // 상단 "바로 시작" 버튼 옆 요약 줄: 현재 선택된 트랙·캐릭터·구구단·모드를 한눈에 보여준다.
-function updateSettingsSummary() {
-  const map = MAPS.find(m => m.id === selectedMapId) || MAPS[0];
-  const ch = CHARACTERS.find(c => c.id === selectedCharId) || CHARACTERS[0];
-  const mode = MODES.find(m => m.id === selectedModeId) || MODES[0];
-  document.getElementById("settingsSummaryText").innerHTML =
-    `${map.emoji} ${map.name} · <span class="dot" style="background:${ch.color}"></span> ${ch.name} · ${tablesLabel(selectedTables)} · ${mode.short}`;
-}
 
 /* 2~9단 개별 선택 + 자주 쓰는 조합 단축 버튼.
    전부 끄면 낼 문제가 없어지므로 마지막 하나는 꺼지지 않게 막는다. */
@@ -495,7 +488,6 @@ function buildTablePicker(container) {
       if (next.length === 0) return;
       selectedTables = next.sort((a,b) => a-b);
       buildTablePicker(container);
-      updateSettingsSummary();
       saveSettings();
     });
     grid.appendChild(btn);
@@ -512,7 +504,6 @@ function buildTablePicker(container) {
     btn.addEventListener("click", () => {
       selectedTables = [...p.tables];
       buildTablePicker(container);
-      updateSettingsSummary();
       saveSettings();
     });
     presets.appendChild(btn);
@@ -532,7 +523,6 @@ function buildStartScreen() {
       selectedMapId = m.id;
       [...mapListEl.children].forEach(c => c.classList.remove("selected"));
       card.classList.add("selected");
-      updateSettingsSummary();
       saveSettings();
     });
     mapListEl.appendChild(card);
@@ -550,7 +540,6 @@ function buildStartScreen() {
       [...charListEl.children].forEach(c => c.classList.remove("selected"));
       card.classList.add("selected");
       updateCharDescLine();
-      updateSettingsSummary();
       saveSettings();
     });
     charListEl.appendChild(card);
@@ -568,13 +557,11 @@ function buildStartScreen() {
       selectedModeId = m.id;
       [...modeListEl.children].forEach(c => c.classList.remove("selected"));
       card.classList.add("selected");
-      updateSettingsSummary();
       saveSettings();
     });
     modeListEl.appendChild(card);
   });
 
-  updateSettingsSummary();
 
   const startFromScreen = () => { ensureAudio(); startRace(); };
   document.getElementById("startBtn").addEventListener("click", startFromScreen);
@@ -588,8 +575,8 @@ function buildStartScreen() {
 
 // 첫 화면의 펼침 패널 두 개. key는 "settings" | "howto" | null
 const START_PANELS = {
-  settings: { panel: "settingsPanel", btn: "settingsBtn", open: "⚙️ 설정 접기 ▴", closed: "⚙️ 설정 바꾸기 ▾" },
-  howto:    { panel: "howtoPanel",    btn: "howtoBtn",    open: "❓ 게임 방법 접기 ▴", closed: "❓ 게임 방법 ▾" },
+  settings: { panel: "settingsPanel", btn: "settingsBtn", open: "설정 접기 ▴", closed: "설정 바꾸기 ▾" },
+  howto:    { panel: "howtoPanel",    btn: "howtoBtn",    open: "게임 방법 접기 ▴", closed: "게임 방법 ▾" },
 };
 
 function setStartPanel(key) {
