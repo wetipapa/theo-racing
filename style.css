@@ -1,13 +1,35 @@
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
+/*
+ * 서비스 색. 허브(wetipapa-play)의 --wp-color-racing과 같은 값을 쓴다.
+ * 웨티 상의의 코랄(#FD4739)은 브랜드 가이드 §5.3에서 UI 포인트 컬러로 금지돼 있고
+ * 흰 배경 대비도 모자란다. 같은 빨강 계열이면서 대비가 확보된 딥 레드오렌지를 쓴다.
+ *
+ * 형제 서비스(구구단 팡팡·시계탐험대)와 같은 뼈대를 공유하고 색만 다르게 둔다.
+ */
+:root {
+  --rc-accent: #c23c0c;
+  --rc-accent-deep: #8a2e0b;
+  --rc-accent-soft: #eaa98d;
+  --rc-cream: #fdf5f1;
+  --rc-cream-deep: #f7e3d9;
+  --rc-card: #fffcfa;
+  --rc-line: #f0d5c8;
+  --rc-line-deep: #e0bfae;
+  --rc-ink: #4a3626;
+  --rc-ink-soft: #8a6a4a;
+  /* 레이싱 트랙 화면은 예전 하늘색을 그대로 쓴다 — 달리는 장면의 하늘이다 */
+  --rc-sky: #cdeffd;
+}
+
 html, body {
   margin: 0;
   padding: 0;
-  background: #cdeffd;
+  background: var(--rc-cream);
   font-family: "Trebuchet MS", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
   overscroll-behavior: none;
   touch-action: manipulation;
-  color: #2b2b2b;
+  color: var(--rc-ink);
 }
 
 #app {
@@ -22,7 +44,7 @@ html, body {
 
 .hidden { display: none !important; }
 
-h1 { font-size: 2rem; text-align: center; color: #ff5e57; margin: 10px 0; text-shadow: 2px 2px 0 #fff; }
+h1 { font-size: 2.1rem; text-align: center; color: var(--rc-accent); margin: 6px 0 2px; letter-spacing: -0.01em; }
 h2 { font-size: 1.3rem; text-align: center; margin: 14px 0 8px; color: #2b6cb0; }
 
 /* ---------- 게임 방법(모달) ---------- */
@@ -88,7 +110,7 @@ h2 { font-size: 1.3rem; text-align: center; margin: 14px 0 8px; color: #2b6cb0; 
 /* ---------- 시작 화면 ---------- */
 #startScreen { width: 100%; text-align: center; }
 
-.tagline { font-size: 1.05rem; color: #555; margin: 0 0 6px; }
+.tagline { font-size: 1.05rem; color: var(--rc-ink-soft); font-weight: bold; margin: 0 0 6px; }
 
 /* "바로 시작"이 첫 화면에서 가장 강한 CTA가 되도록, 다른 버튼보다 크게 만든다 */
 .startBtn { font-size: 1.6rem; padding: 18px 40px; margin: 10px 8px; }
@@ -99,7 +121,7 @@ h2 { font-size: 1.3rem; text-align: center; margin: 14px 0 8px; color: #2b6cb0; 
   margin: 8px auto 12px;
   font-size: 0.95rem;
   font-weight: bold;
-  color: #555;
+  color: var(--rc-ink-soft);
   word-break: keep-all;
   overflow-wrap: normal;
 }
@@ -117,19 +139,19 @@ h2 { font-size: 1.3rem; text-align: center; margin: 14px 0 8px; color: #2b6cb0; 
 .panelToggle {
   flex: 1;
   padding: 12px 10px;
-  border: 2px solid #ffd166;
+  border: 2px solid var(--rc-line);
   border-radius: 16px;
-  background: #fff;
-  box-shadow: 0 3px 0 #f0c14b;
-  color: #2b2b2b;
+  background: var(--rc-card);
+  box-shadow: 0 3px 0 var(--rc-line-deep);
+  color: var(--rc-ink);
   font-size: 0.95rem;
   font-weight: bold;
   cursor: pointer;
   word-break: keep-all;
   overflow-wrap: normal;
 }
-.panelToggle:active { transform: translateY(2px); box-shadow: 0 1px 0 #f0c14b; }
-.panelToggleOpen { background: #fff6e0; }
+.panelToggle:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--rc-line-deep); }
+.panelToggleOpen { background: var(--rc-cream-deep); }
 
 .dot {
   display: inline-block;
@@ -220,21 +242,22 @@ h2 { font-size: 1.3rem; text-align: center; margin: 14px 0 8px; color: #2b6cb0; 
   margin: 16px 8px 6px;
   border: none;
   border-radius: 20px;
-  background: #ff5e57;
+  background: var(--rc-accent);
   color: #fff;
   cursor: pointer;
-  box-shadow: 0 5px 0 #c73e39;
+  border: 2px solid var(--rc-accent-soft);
+  box-shadow: 0 6px 0 var(--rc-accent-deep);
 }
-.bigBtn:active { transform: translateY(3px); box-shadow: 0 2px 0 #c73e39; }
+.bigBtn:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--rc-accent-deep); }
 .secondaryBtn { background: #4c7fe0; box-shadow: 0 5px 0 #33579c; }
 .secondaryBtn:active { box-shadow: 0 2px 0 #33579c; }
 
-.blogFooter { font-size: 0.9rem; margin: 18px auto 4px; color: #777; }
-.blogFooter a { color: #2b6cb0; font-weight: bold; text-decoration: none; }
+.blogFooter { font-size: 0.9rem; margin: 18px auto 4px; color: var(--rc-ink-soft); }
+.blogFooter a { color: var(--rc-accent-deep); font-weight: bold; text-decoration: none; }
 .blogFooter a:hover, .blogFooter a:active { text-decoration: underline; }
 
 /* ---------- 레이싱 화면 ---------- */
-#raceScreen { width: 100%; }
+#raceScreen { width: 100%; background: var(--rc-sky); }
 
 #hud {
   display: flex;
@@ -544,8 +567,8 @@ h2 { font-size: 1.3rem; text-align: center; margin: 14px 0 8px; color: #2b6cb0; 
 #heroImage {
   display: block;
   width: auto;
-  height: min(28vh, 190px);
-  margin: 2px auto 6px;
+  height: min(30vh, 220px);
+  margin: 2px auto 10px;
 }
 
 @media (max-height: 620px) {
