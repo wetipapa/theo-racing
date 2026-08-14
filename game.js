@@ -1121,23 +1121,16 @@ function aiAvoidTarget(car) {
 }
 
 /* ---------- 아이템 로직 ---------- */
-// 현재 순위(상위/중위/하위)에 따라 아이템 확률을 다르게 뽑는다.
-// 상위권은 방어 위주(바나나·방패), 중위권은 견제 위주(로켓·폭탄), 하위권은 역전 위주(번개·거대 사탕).
-// 럭키 캐릭터의 itemLuck은 기존처럼 "바나나를 제외한 강한 아이템"에 전부 곱해서 자연스럽게 확장한다.
-// 1등 차량은 번개를 뽑지 않는다(뽑히더라도 확률 0으로 만들어 다른 아이템으로 대체).
+/* 아이템은 순위와 상관없이 똑같은 확률로 나온다.
+   예전에는 순위별로 가중치를 줘서(상위권=바나나·방패 위주) 뒤처진 쪽을 도왔는데,
+   1등이 바나나+방패만 79% 확률로 받게 되어 "잘 달릴수록 아이템이 심심해지는" 문제가 있었다.
+   곱셈 문제를 잘 풀어서 앞서 나간 쪽이 제일 재미없어지는 건 이 게임의 목적과 어긋나서,
+   순위 보정을 걷어내고 전부 같은 확률로 돌린다.
+   럭키 캐릭터의 itemLuck은 그대로 유지 — 바나나를 뺀 나머지에 곱해서 강한 아이템이 잘 나오게 한다. */
 function rollItem(car) {
   const char = car.char;
-  const n = cars.length;
-  const rank = car.rank || Math.ceil(n / 2);
-  const tier = rank <= Math.ceil(n / 3) ? "top" : (rank <= Math.ceil(n * 2 / 3) ? "mid" : "bottom");
-
   const w = { banana: 1, shield: 1, rocket: 1, bomb: 1, lightning: 1, bigcandy: 1 };
-  if (tier === "top") { w.banana = 3; w.shield = 3; w.rocket = 0.6; w.bomb = 0.6; w.lightning = 0.4; w.bigcandy = 0.4; }
-  else if (tier === "mid") { w.rocket = 2.2; w.bomb = 2.2; w.lightning = 0.8; w.bigcandy = 0.8; }
-  else { w.lightning = 2.6; w.bigcandy = 2.6; w.banana = 0.8; w.shield = 0.8; w.rocket = 1.2; w.bomb = 1.2; }
-
   Object.keys(w).forEach(k => { if (k !== "banana") w[k] *= char.itemLuck; });
-  if (rank === 1) w.lightning = 0; // 1등은 번개를 획득하지 않는다
 
   const total = Object.values(w).reduce((a, b) => a + b, 0);
   let r = Math.random() * total;
@@ -1153,22 +1146,30 @@ function useItem(car, slot) {
   if (!item) return;
 
   if (item === "lightning") {
-    // 현재 1등에게만 떨어진다. 자신이 1등이 되어버려 대상이 없으면(순위가 바뀐 경우 등)
-    // 칸을 비우지 않고 그대로 들고 있는다 — 다음 프레임에 다시 시도된다.
-    const leader = cars.find(c => c !== car && !c.finished && c.rank === 1);
-    if (!leader) return;
+    // "자기를 뺀 가장 앞선 차"에게 떨어진다. 2등 이하면 1등을, 1등이면 2등을 때린다.
+    // (예전에는 1등만 노려서, 1등이 번개를 들면 대상이 없어 영원히 못 쓰고 아이템 칸만
+    //  차지했다. 그래서 1등은 번개를 아예 못 뽑게 막아뒀는데, 이렇게 일반화하면
+    //  대상이 항상 있으므로 그 예외 자체가 필요 없어진다.)
+    const target = cars.reduce((best, c) =>
+      (c === car || c.finished) ? best : (!best || c.rank < best.rank ? c : best), null);
+    if (!target) return; // 남들이 전부 완주한 경우에만 해당
     car.items.splice(slot, 1);
     if (car.isPlayer) { updateItemUI(); playSound("item"); }
     triggerScreenFlash();
     playSound("zap");
-    hitCar(leader, "lightning");
+    hitCar(target, "lightning");
     return;
   }
   if (item === "bomb") {
-    // 주변에 맞힐 상대가 있을 때만 사용한다(없으면 소비하지 않고 계속 들고 있는다)
+    // 주변에 맞힐 상대가 있을 때만 사용한다(없으면 소비하지 않고 계속 들고 있는다).
+    // AI는 이 성질을 조준 로직 대신 쓰지만(updateCar의 주석 참고), 플레이어는 버튼을 눌렀는데
+    // 아무 반응이 없으면 고장난 것처럼 느껴지므로 왜 안 나갔는지 알려준다.
     const targets = cars.filter(o => o !== car && !o.finished &&
       circDist(car.s, o.s) < BOMB_RANGE_S && Math.abs(car.offset - o.offset) < BOMB_RANGE_OFFSET);
-    if (targets.length === 0) return;
+    if (targets.length === 0) {
+      if (car.isPlayer) showHintBanner("💣 주변에 아무도 없어요! 가까이 붙어서 터뜨리세요");
+      return;
+    }
     car.items.splice(slot, 1);
     if (car.isPlayer) { updateItemUI(); playSound("item"); }
     playSound("boom");
