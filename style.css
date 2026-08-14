@@ -265,7 +265,13 @@ h2 { font-size: 1.3rem; text-align: center; margin: 14px 0 8px; color: var(--rc-
 .secondaryBtn { background: #4c7fe0; box-shadow: 0 5px 0 #33579c; }
 .secondaryBtn:active { box-shadow: 0 2px 0 #33579c; }
 
-.blogFooter { font-size: 0.8rem; font-weight: bold; margin: 10px auto 4px; color: var(--rc-ink-soft); }
+/* 허브로 돌아가는 링크. 게임 중에는 넣지 않는다 — 눈에 띄면 한 판을 끝내기 전에 빠져나간다.
+   첫 화면 아래와 결과 화면에만 둔다. */
+.hubFooter { font-size: 0.8rem; font-weight: bold; margin: 14px auto 0; color: var(--rc-ink-soft); }
+.hubFooter a { color: inherit; font-weight: bold; text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 2px; }
+.hubFooter a:hover, .hubFooter a:active { color: var(--rc-ink); }
+
+.blogFooter { font-size: 0.8rem; font-weight: bold; margin: 4px auto 4px; color: var(--rc-ink-soft); }
 .blogFooter a { color: inherit; font-weight: bold; text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 2px; }
 .blogFooter a:hover, .blogFooter a:active { color: var(--rc-ink); }
 
