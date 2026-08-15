@@ -55,8 +55,8 @@ WRONG_SLOW_FACTOR = 0.32  // 오답 시 속도 배율
 `설정 바꾸기`로 접혀 있다. 게임 방법도 아래쪽 보조 영역이다.
 7세 아이가 설명을 읽기 전에 시작할 수 있어야 하므로, 이 순서를 뒤집지 않는다.
 
-상위 `../CLAUDE.md`에 웨티아빠 프로젝트 공통 규칙이 있다 (이 저장소에는 포함되지 않음).
+상위 `../CLAUDE.md`에 웨티파파 프로젝트 공통 규칙이 있다 (이 저장소에는 포함되지 않음).
 
 ---
 
-웨티아빠 · [블로그](https://blog.naver.com/wetipapa) · [스레드](https://www.threads.com/@wetipapa)
+웨티파파 · [블로그](https://blog.naver.com/wetipapa) · [스레드](https://www.threads.com/@wetipapa)
