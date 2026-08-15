@@ -271,7 +271,9 @@ h2 { font-size: 1.3rem; text-align: center; margin: 14px 0 8px; color: var(--rc-
 .hubFooter a { color: inherit; font-weight: bold; text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 2px; }
 .hubFooter a:hover, .hubFooter a:active { color: var(--rc-ink); }
 
-.blogFooter { font-size: 0.8rem; font-weight: bold; margin: 4px auto 4px; color: var(--rc-ink-soft); }
+/* 의미 단위로 끊어 두 줄로 고정한다. 한 줄이면 좁은 폰에서 어중간한 자리에 접힌다 */
+.blogFooter { font-size: 0.8rem; font-weight: bold; margin: 4px auto 4px; line-height: 1.6; color: var(--rc-ink-soft); }
+.blogFooter span { display: block; }
 .blogFooter a { color: inherit; font-weight: bold; text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 2px; }
 .blogFooter a:hover, .blogFooter a:active { color: var(--rc-ink); }
 
