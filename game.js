@@ -645,7 +645,21 @@ function shuffled(arr) {
   return a;
 }
 
+/* 게임에서 세는 것은 셋뿐이다.
+
+   방문자 수만 보면 들어와서 그냥 나간 사람과 세 판 하고 나간 사람이 똑같이 1로 잡힌다.
+     start     첫 화면이 제 역할을 하는가 — 들어와서 실제로 시작을 누르는가
+     complete  난이도가 맞는가 — 완주까지 가는가
+     replay    재미있는가 — 끝나고 한 번 더 누르는가
+
+   `/_vercel/insights/script.js`가 붙여 두는 window.va 를 쓴다.
+   개발 중이거나 스크립트가 막히면 아무 일도 하지 않는다. 게임을 절대 멈추지 않는다. */
+function trackEvent(name) {
+  try { window.va && window.va("event", { name }); } catch (e) { /* 통계 실패는 게임에 영향을 주지 않는다 */ }
+}
+
 function startRace() {
+  trackEvent("game_start");
   const playerChar = CHARACTERS.find(c => c.id === selectedCharId);
   const map = MAPS.find(m => m.id === selectedMapId) || MAPS[0];
   applyMap(map);
@@ -779,6 +793,7 @@ function update(dt) {
   // 플레이어가 결승선을 통과하면 결과 화면으로 전환
   if (player.finished && !raceEnding) {
     raceEnding = true;
+    trackEvent("game_complete");
     playSound("finish");
     const banner = document.getElementById("finishBanner");
     banner.textContent = "결승 도착! 🏁";
@@ -1949,6 +1964,7 @@ function finishRace() {
 // 같은 설정으로 곧바로 다시 하기 — 마지막으로 고른 설정을 그대로 재사용한다.
 document.getElementById("retryBtn").addEventListener("click", () => {
   ensureAudio();
+  trackEvent("game_replay");
   startRace();
 });
 // 설정을 바꾸고 다시 하기 — 처음 화면으로 돌아가되 설정 영역을 바로 펼쳐준다.
