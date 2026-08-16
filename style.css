@@ -30,16 +30,31 @@ html, body {
   overscroll-behavior: none;
   touch-action: manipulation;
   color: var(--rc-ink);
+  /* iOS가 글자를 제멋대로 키우면 화면에 맞춰 둔 배치가 넘친다 */
+  -webkit-text-size-adjust: 100%;
 }
 
+/* **iOS 사파리에서 `100vh`는 주소창까지 포함한 높이다.** 실제로 보이는 영역보다 100px쯤 크고,
+   그만큼 화면 아래가 도구막대 뒤로 들어가 손이 닿지 않는다.
+   데스크톱과 안드로이드에서는 두 값이 같아 아무 증상도 안 보인다.
+
+   폴백을 `@supports not` 으로 적는 이유 — 같은 속성을 두 줄 쓰면 압축기가 앞줄을 지워서,
+   정작 폴백이 필요한 사파리 15.4 미만에 높이가 아예 안 남는다. */
 #app {
   max-width: 1000px;
   margin: 0 auto;
-  min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 10px;
+}
+
+/* 사파리 15.4 미만. 주소창까지 포함한 높이라도 없는 것보다는 낫다 */
+@supports not (height: 100dvh) {
+  #app {
+    min-height: 100vh;
+  }
 }
 
 .hidden { display: none !important; }
